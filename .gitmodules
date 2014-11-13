@@ -1,0 +1,3 @@
+[submodule "olinuxuino"]
+	path = hardware/olinuxuino
+	url = https://github.com/OLIMEX/OLINUXINO.git
