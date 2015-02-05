@@ -72,68 +72,72 @@ def predictPuck (X_goal, Y_max, Y_min, delX, delY):
 
 	return default_return
 
-image = cv2.imread('moved_2.jpg')
-height , width , layers =  image.shape
-fourcc = cv2.VideoWriter_fourcc(*'XVID')
-video = cv2.VideoWriter('output.avi',fourcc, 60.0, (width,height))
+def main():
+    image = cv2.imread('moved_2.jpg')
+    height , width , layers =  image.shape
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    video = cv2.VideoWriter('output.avi',fourcc, 60.0, (width,height))
+    
+    i=0
+    #values which keep track of where the puck was last frame. THESE ARE MADE UP RIGHT NOW
+    #X_prev = 300
+    #Y_prev = 50
+    for y in range(60, 220, 5):
+    	for x in range (350, 180, -1): #do a test
+    		image = cv2.imread('moved_2.jpg')
+    		X_prev = x
+    		Y_prev = y
+    		print 'x position: ', x
+    		print 'y position: ', Y_prev
+    
+    		boundaries = [
+    			([50, 40, 205], [70, 60, 235])
+    		]
+    
+    		# loop over the boundaries which actually doesn't matter right now, it only runs once
+    		for (lower, upper) in boundaries:
+    			# create NumPy arrays from the boundaries
+    			lower = np.array(lower, dtype = "uint8")
+    			upper = np.array(upper, dtype = "uint8")
+    		 
+    			# find the colors within the specified boundaries and apply
+    			# the mask
+    			mask = cv2.inRange(image, lower, upper)
+    			kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(5,5))
+    			mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    			output = cv2.bitwise_and(image, image, mask = mask)
+    
+    			Omoments = cv2.moments(mask)
+    			dM01 = Omoments['m01']
+    			dM10 = Omoments['m10']
+    			dArea = Omoments['m00']
+    
+    			if dArea > 10000: #the puck is on the screen
+    				posX = int(dM10/dArea)
+    				posY = int(dM01/dArea)
+    				print 'current position: ', posX, posY
+    				deltaX = posX - X_prev
+    				deltaY = posY - Y_prev
+    				xp,yp = predictPuck(30, 60, 220, deltaX, deltaY)
+    				print 'predicton: ', xp, yp
+    
+    				#previous puck
+    				cv2.circle(image, (X_prev, Y_prev), 10, (0, 0, 255), -1)
+    				#current puck
+    				cv2.circle(output, (posX, posY), 2, (255, 255, 255), -1)
+    				#predicted location
+    				cv2.circle(image, (xp, yp), 4, (0, 255, 0), -1)
+    
+    			# show the images
+    			drawArena(30, 60, 220, image)
+    			video.write(image)
+    
+    cv2.destroyAllWindows()
+    #del video # this makes a working AVI
+    video.release()
+    
+    	#cv2.imshow("images", np.hstack([image, output]))
+    	#cv2.waitKey(0)
 
-i=0
-#values which keep track of where the puck was last frame. THESE ARE MADE UP RIGHT NOW
-#X_prev = 300
-#Y_prev = 50
-for y in range(60, 220, 5):
-	for x in range (350, 180, -1): #do a test
-		image = cv2.imread('moved_2.jpg')
-		X_prev = x
-		Y_prev = y
-		print 'x position: ', x
-		print 'y position: ', Y_prev
-
-		boundaries = [
-			([50, 40, 205], [70, 60, 235])
-		]
-
-		# loop over the boundaries which actually doesn't matter right now, it only runs once
-		for (lower, upper) in boundaries:
-			# create NumPy arrays from the boundaries
-			lower = np.array(lower, dtype = "uint8")
-			upper = np.array(upper, dtype = "uint8")
-		 
-			# find the colors within the specified boundaries and apply
-			# the mask
-			mask = cv2.inRange(image, lower, upper)
-			kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(5,5))
-			mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-			output = cv2.bitwise_and(image, image, mask = mask)
-
-			Omoments = cv2.moments(mask)
-			dM01 = Omoments['m01']
-			dM10 = Omoments['m10']
-			dArea = Omoments['m00']
-
-			if dArea > 10000: #the puck is on the screen
-				posX = int(dM10/dArea)
-				posY = int(dM01/dArea)
-				print 'current position: ', posX, posY
-				deltaX = posX - X_prev
-				deltaY = posY - Y_prev
-				xp,yp = predictPuck(30, 60, 220, deltaX, deltaY)
-				print 'predicton: ', xp, yp
-
-				#previous puck
-				cv2.circle(image, (X_prev, Y_prev), 10, (0, 0, 255), -1)
-				#current puck
-				cv2.circle(output, (posX, posY), 2, (255, 255, 255), -1)
-				#predicted location
-				cv2.circle(image, (xp, yp), 4, (0, 255, 0), -1)
-
-			# show the images
-			drawArena(30, 60, 220, image)
-			video.write(image)
-
-cv2.destroyAllWindows()
-#del video # this makes a working AVI
-video.release()
-
-	#cv2.imshow("images", np.hstack([image, output]))
-	#cv2.waitKey(0)
+if __name__ == "__main__":
+    main()
