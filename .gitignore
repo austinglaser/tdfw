@@ -1,2 +1,5 @@
 # video files
 *.avi
+
+# Executable
+test
