@@ -15,6 +15,8 @@ int main(void)
 	GMainLoop* loop = g_main_loop_new(0, 0);
 
     exec("echo 60 > /sys/class/gpio/export");
+    exec("echo both > /sys/class/gpio/gpio60_pi10/edge");
+    exec("echo in > /sys/class/gpio/gpio60_pi10/direction");
 
 	int fd = open("/sys/class/gpio/gpio60_pi10/value", O_RDONLY | O_NONBLOCK);
     GIOChannel* channel = g_io_channel_unix_new(fd);
