@@ -1,5 +1,5 @@
 CXX		:= g++
-CPPFLAGS	:= -Wall -Wextra -g
+CPPFLAGS	:= -Wall -Wextra -Wno-write-strings -g
 
 PC		:= pkg-config
 PCFLAGS		:= --cflags --libs
