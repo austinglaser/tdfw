@@ -3,6 +3,9 @@
 # NOTE: Can be overridden externally.
 #
 
+# Determine root directory
+ROOT_DIR:=$(realpath $(dir $(lastword $(MAKEFILE_LIST))))
+
 # Compiler options here.
 ifeq ($(USE_OPT),)
   USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16
@@ -68,7 +71,7 @@ endif
 PROJECT = ch
 
 # Imported source files and paths
-CHIBIOS = $(realpath ../chibios/)
+CHIBIOS = $(realpath chibios/)
 include $(CHIBIOS)/boards/ST_STM32F3_DISCOVERY/board.mk
 include $(CHIBIOS)/os/hal/platforms/STM32F30x/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
@@ -87,7 +90,7 @@ CSRC = $(PORTSRC) \
        $(HALSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
-       main.c
+       $(ROOT_DIR)/src/main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -118,7 +121,8 @@ ASMSRC = $(PORTASM)
 
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
-         $(CHIBIOS)/os/various
+         $(CHIBIOS)/os/various \
+         $(ROOT_DIR)/inc
 
 #
 # Project, sources and paths
