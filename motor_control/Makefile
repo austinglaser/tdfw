@@ -90,7 +90,8 @@ CSRC = $(PORTSRC) \
        $(HALSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
-       $(ROOT_DIR)/src/main.c
+       $(ROOT_DIR)/src/main.c \
+       $(ROOT_DIR)/src/mds.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
