@@ -245,6 +245,9 @@ clean:
 	@echo
 	@echo Done
 
+flash:
+	sudo dfu-util --device 0483:df11 --alt 0 --dfuse-address 0x08000000 --download $(BUILDDIR)/$(PROJECT).bin
+
 #
 # Include the dependency files, should be the last of the makefile
 #

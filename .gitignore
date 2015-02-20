@@ -14,3 +14,4 @@ test
 
 # Directories
 build/
+.dep/
