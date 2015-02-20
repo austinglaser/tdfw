@@ -56,23 +56,6 @@ void mds_init(void);
 mds_err_t mds_set_pid(uint32_t kp, uint32_t ki, uint32_t kd);
 
 /**
- * @brief   Set the observed boundaries of the playfield
- *
- * @note    Each time this is called, the MDS considers itself uncalibrated and will not
- *          initiate movement until calibration is achieved
- *
- * @param[in] x_lower:          The lower limit (in pixels) of the mallet's x movement
- * @param[in] x_upper:          The upper limit (in pixels) of the mallet's x movement
- * @param[in] y_lower:          The lower limit (in pixels) of the mallet's y movement
- * @param[in] y_upper:          The upper limit (in pixels) of the mallet's y movement
- *
- * @retval MDS_SUCCESS:         The limits have been accepted
- * @retval MDS_INVALID_MODE:    The MDS is currently in motion
- * @retval MDS_INVALID_PARAM:   One or more of the values is too big
- */
-mds_err_t mds_set_playfield(uint32_t x_lower, uint32_t x_upper, uint32_t y_lower, uint32_t y_upper);
-
-/**
  * @brief   Start the mallet calibration process
  * 
  * @details During the calibration process, the user must manually move the
@@ -94,7 +77,6 @@ mds_err_t mds_start_calibration(void);
  *          the conversion from pixel values
  *
  * @retval MDS_SUCCESS:         Calibration has completed successfuly
- * @retval MDS_FAIL:            Something went wrong
  */
 mds_err_t mds_stop_calibration(void);
 
@@ -119,8 +101,8 @@ mds_err_t mds_stop(void);
 /**
  * @brief   Command the mallet to a certain position
  * 
- * @param[in] x_location:       The target x location in pixels
- * @param[in] y_location:       The target y location in pixels
+ * @param[in] x_location:       The target x location in mm
+ * @param[in] y_location:       The target y location in mm
  *
  * @retval MDS_SUCCESS:         New target locations successfuly recorded
  * @retval MDS_OUT_OF_BOUNDS:   Either or both target locations are outside the boundaries
