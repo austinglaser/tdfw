@@ -22,6 +22,9 @@
 #define MDS_KI_DEFAULT          (1)     /**< Default integral loop constant */
 #define MDS_KD_DEFAULT          (1)     /**< Default differential loop constant */
 
+#define MDS_X_SAT_DEFAULT       (5)     /**< Default x saturation value in volts */
+#define MDS_Y_SAT_DEFAULT       (5)     /**< Default y saturation value in volts */
+
 #define MDS_MM_PER_REV          (78)
 #define MDS_X_COUNTS_PER_REV    (1024*2)
 #define MDS_Y_COUNTS_PER_REV    (13*4)
@@ -61,10 +64,13 @@ typedef struct {
     uint32_t ki;                /**< Integral feedback constant */
     uint32_t kd;                /**< Differential feedback constant */
 
-    uint32_t x_lower;           /**< The lower bound of the play field in the x axis (in mm) */
-    uint32_t x_upper;           /**< The upper bound of the play field in the x axis (in mm) */
-    uint32_t y_lower;           /**< The lower bound of the play field in the y axis (in mm) */
-    uint32_t y_upper;           /**< The upper bound of the play field in the y axis (in mm) */
+    uint32_t x_sat;             /**< Saturation for the x axis in volts */
+    uint32_t y_sat;             /**< Saturation for the y axis in volts */
+
+    uint32_t x_lower;           /**< The lower bound of the play field in the x axis (in encoder counts) */
+    uint32_t x_upper;           /**< The upper bound of the play field in the x axis (in encoder counts) */
+    uint32_t y_lower;           /**< The lower bound of the play field in the y axis (in encoder counts) */
+    uint32_t y_upper;           /**< The upper bound of the play field in the y axis (in encoder counts) */
 
     int32_t x_offset;           /**< Encoder count offset */
     int32_t y_offset;           /**< Encoder count offset */
@@ -88,6 +94,9 @@ static mds_info_t mds_info = {  /**< MDS settings */
     .ki                 = MDS_KI_DEFAULT,
     .kd                 = MDS_KD_DEFAULT,
 
+    .x_sat              = MDS_X_SAT_DEFAULT,
+    .y_sat              = MDS_Y_SAT_DEFAULT,
+
     .x_lower            = 0,
     .x_upper            = 0,
     .y_lower            = 0,
@@ -100,9 +109,43 @@ static mds_info_t mds_info = {  /**< MDS settings */
 /* --- PRIVATE FUNCTION PROTOTYPES ------------------------------------------ */
 
 /**
- * @brief   Uses values in mds_info to calculate a new conversion factor
+ * @brief   Calculate the next PID iteration
  */
-static void mds_calculate_conversion(void);
+static void mds_update_pid(void);
+
+/**
+ * @brief Convert encoder counts to mm in the x dimension
+ *
+ * @param[in] counts:       Current encoder counter value
+ * @param[in] overflows:    How many times the timer has over- or (if negative) under-flowed
+ *
+ * @return:                 The converted x coordinate
+ */
+static inline uint32_t mds_count_to_mm_x(int32_t counts, int32_t overflows);
+
+/**
+ * @brief   Convert encoder counts to mm in the x dimension
+ *
+ * @param[in] counts:       Current encoder counter value
+ * @param[in] overflows:    How many times the timer has over- or (if negative) under-flowed
+ *
+ * @return:                 The converted y coordinate
+ */
+static inline uint32_t mds_count_to_mm_y(int32_t counts, int32_t overflows);
+
+/**
+ * @brief   Set the output command on the x axis to <volts>
+ *
+ * @param[in] volts:        The value to set. Converted to PWM value
+ */
+static inline void mds_set_output_x(float volts);
+
+/**
+ * @brief   Set the output command on the x axis to <volts>
+ *
+ * @param[in] volts:        The value to set. Converted to PWM value
+ */
+static inline void mds_set_output_y(float volts);
 
 /* --- PUBLIC FUNCTION DEFINITIONS ------------------------------------------ */
 
@@ -197,6 +240,36 @@ mds_err_t mds_set_location(uint32_t x_location, uint32_t y_location)
 }
 
 /* --- PRIVATE FUNCTION DEFINITIONS ----------------------------------------- */
+
+static void mds_update_pid(void)
+{
+}
+
+static inline uint32_t mds_count_to_mm_x(int32_t counts, int32_t overflows)
+{
+    (void) counts;
+    (void) overflows;
+
+    return 0;
+}
+
+static inline uint32_t mds_count_to_mm_y(int32_t counts, int32_t overflows)
+{
+    (void) counts;
+    (void) overflows;
+
+    return 0;
+}
+
+static inline void mds_set_output_x(float volts)
+{
+    (void) volts;
+}
+
+static inline void mds_set_output_y(float volts)
+{
+    (void) volts;
+}
 
 /**
  * @} addtogroup MDS
