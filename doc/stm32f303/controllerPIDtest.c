@@ -32,7 +32,7 @@ digitalWrite(motorDrivePin, HIGH); //safety
 //pid setup
 SetMode(AUTOMATIC); //auto PID mode
 SetTunings(1, 0, 0);
-SetOutputLimits(-3, 3); //+-24V
+SetOutputLimits(-3, 3); //+-24V maximum
 SetSampleTime(5); //something smaller than the loop delay
 Setpoint = 12.56;
 digitalWrite(motorEnablePin, HIGH); //let it go
@@ -45,7 +45,7 @@ Compute();
 outputToPWM(Output);
 }
 
-void integrate() {
+void integrate() { //this is different now that it's running in the hardware counter
 	if(digitalRead(4)) { //the second channel is leading the first, so direction = 1
 		count++;
 	}
