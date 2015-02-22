@@ -41,19 +41,40 @@ typedef enum {
 void mds_init(void);
 
 /**
- * @brief   Sets the controller's loop parameters
+ * @brief   Sets the controller's loop parameters for the x axis
  *
  * @note    At initialization, these are set to a conservative default value
  *
- * @param[in] kp:               The proportional feedback constant
- * @param[in] ki:               The integral feedback constant
- * @param[in] kd:               The differential feedback constant
+ * @param[in] kp_x:             The proportional feedback constant. In units of volts/mm
+ * @param[in] ki_x:             The integral feedback constant. In units of volts/(mm*s)
+ * @param[in] kd_x:             The differential feedback constant. In units of volts*s/mm
+ * @param[in] sat_x:            The saturation (in volts)
+ * @param[in] reverse_x:        Set to non-zero to reverse the loop. This can also be
+                                accomplished by negating the loop parameters
  *
  * @retval MDS_SUCCESS:         The new loop parameters are set
  * @retval MDS_INVALID_MODE:    The MDS is moving, can't set these on the fly
  * @retval MDS_INVALID_PARAM:   One or more of the constants is too big
  */
-mds_err_t mds_set_pid(uint32_t kp, uint32_t ki, uint32_t kd);
+mds_err_t mds_set_pid_x(float kp_x, float ki_x, float kd_x, float sat_x, uint8_t reverse_x);
+
+/**
+ * @brief   Sets the controller's loop parameters for the y ayis
+ *
+ * @note    At initialization, these are set to a conservative default value
+ *
+ * @param[in] kp_y:             The proportional feedback constant. In units of volts/mm
+ * @param[in] ki_y:             The integral feedback constant. In units of volts/(mm*s)
+ * @param[in] kd_y:             The differential feedback constant. In units of volts*s/mm
+ * @param[in] sat_y:            The saturation (in volts)
+ * @param[in] reverse_y:        Set to non-zero to reverse the loop. This can also be
+                                accomplished by negating the loop parameters
+ *
+ * @retval MDS_SUCCESS:         The new loop parameters are set
+ * @retval MDS_INVALID_MODE:    The MDS is moving, can't set these on the fly
+ * @retval MDS_INVALID_PARAM:   One or more of the constants is too big
+ */
+mds_err_t mds_set_pid_y(float kp_y, float ki_y, float kd_y, float sat_y, uint8_t reverse_y);
 
 /**
  * @brief   Start the mallet calibration process
@@ -93,8 +114,6 @@ mds_err_t mds_start(void);
  * @brief   Releases MDS controll of the mallet
  *
  * @retval MDS_SUCCESS:         The mallet will not move
- * @retval MDS_INVALID_MODE:    MDS calibrating
- * @retval MDS_UNCALIBRATED:    MDS is uncalibrated, can't initiate movement
  */
 mds_err_t mds_stop(void);
 
@@ -105,10 +124,11 @@ mds_err_t mds_stop(void);
  * @param[in] y_location:       The target y location in mm
  *
  * @retval MDS_SUCCESS:         New target locations successfuly recorded
- * @retval MDS_OUT_OF_BOUNDS:   Either or both target locations are outside the boundaries
+ * @retval MDS_OUT_OF_BOUNDS:   Either or both target locations are outside the boundaries.
+ *                              Will still record a new setpoint, limiting to the boundaries
  * @retval MDS_INVALID_MODE:    Movement has not been initiated
  */
-mds_err_t mds_set_location(uint32_t x_location, uint32_t y_location);
+mds_err_t mds_set_location(float setpoint_x, float setpoint_y);
 
 /**
  * @} defgroup MDS

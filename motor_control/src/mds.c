@@ -13,23 +13,35 @@
 // Standard
 #include <stdint.h>
 
+// Chibios
+#include "ch.h"
+#include "hal.h"
+
 // Project
 #include "mds.h"
 
 /* --- PRIVATE DEFINITIONS -------------------------------------------------- */
 
-#define MDS_KP_DEFAULT          (1)     /**< Default proportional loop constant */
-#define MDS_KI_DEFAULT          (1)     /**< Default integral loop constant */
-#define MDS_KD_DEFAULT          (1)     /**< Default differential loop constant */
+#define MDS_LOOP_TIME_MS        (10)
 
-#define MDS_X_SAT_DEFAULT       (5)     /**< Default x saturation value in volts */
-#define MDS_Y_SAT_DEFAULT       (5)     /**< Default y saturation value in volts */
+#define MDS_KP_DEFAULT          (0.01)  /**< Default proportional loop constant */
+#define MDS_KI_DEFAULT          (0.01)  /**< Default integral loop constant */
+#define MDS_KD_DEFAULT          (0.01)  /**< Default differential loop constant */
 
-#define MDS_MM_PER_REV          (78)
-#define MDS_X_COUNTS_PER_REV    (1024*2)
-#define MDS_Y_COUNTS_PER_REV    (13*4)
-#define MDS_X_COUNTS_PER_MM     (MDS_X_COUNTS_PER_REV / MDS_MM_PER_REV)
-#define MDS_Y_COUNTS_PER_MM     (MDS_Y_COUNTS_PER_REV / MDS_MM_PER_REV)
+#define MDS_SAT_DEFAULT_X       (5.0)   /**< Default x saturation value in volts */
+#define MDS_SAT_DEFAULT_Y       (5.0)   /**< Default y saturation value in volts */
+
+#define MDS_SAFETY_ZONE_MM_X    (100.0) 
+#define MDS_SAFETY_ZONE_MM_Y    (50.0)
+
+#define MDS_MM_PER_REV          (78.2)
+#define MDS_COUNTS_PER_REV_X    (1024.0*2.0)
+#define MDS_COUNTS_PER_REV_Y    (13.0*4.0)
+#define MDS_COUNTS_PER_MM_X     (MDS_COUNTS_PER_REV_X / MDS_MM_PER_REV)
+#define MDS_COUNTS_PER_MM_Y     (MDS_COUNTS_PER_REV_Y / MDS_MM_PER_REV)
+
+#define MDS_MAX_COUNT_VALUE_X   UINT32_MAX
+#define MDS_MAX_COUNT_VALUE_Y   UINT16_MAX
 
 /* --- PRIVATE DATA TYPES --------------------------------------------------- */
 
@@ -52,114 +64,178 @@ typedef struct {
     mds_mode_t mode;            /**< Current system mode */
     uint32_t is_calibrated;     /**< Whether or not the MDS is calibrated */
 
-    uint32_t x_command;         /**< Current commanded x location (in mm) */
-    uint32_t y_command;         /**< Current commanded y location (in mm) */
+    float setpoint_x;           /**< Current setpointed x location (in mm) */
+    float setpoint_y;           /**< Current setpointed y location (in mm) */
 
-    uint32_t x_count;           /**< X encoder count */
-    uint32_t y_count;           /**< Y encoder count */
-    int32_t x_under;            /**< Number of times x count has over/under-flowed */
-    int32_t y_under;            /**< Number of times y count has over/under-flowed */
+    uint32_t count_x;           /**< X encoder count */
+    uint32_t count_y;           /**< Y encoder count */
+    int32_t overflow_x;         /**< Number of times x count has over/under-flowed */
+    int32_t overflow_y;         /**< Number of times y count has over/under-flowed */
 
-    uint32_t kp;                /**< Proportional feedback constant */
-    uint32_t ki;                /**< Integral feedback constant */
-    uint32_t kd;                /**< Differential feedback constant */
+    float kp_x;                 /**< Proportional feedback constant for x axis */
+    float ki_x;                 /**< Integral feedback constant for x axis */
+    float kd_x;                 /**< Differential feedback constant for x axis */
+    float kp_y;                 /**< Proportional feedback constant for y axis */
+    float ki_y;                 /**< Integral feedback constant for y axis */
+    float kd_y;                 /**< Differential feedback constant for y axis */
 
-    uint32_t x_sat;             /**< Saturation for the x axis in volts */
-    uint32_t y_sat;             /**< Saturation for the y axis in volts */
+    float sat_x;                /**< Saturation for the x axis in volts */
+    float sat_y;                /**< Saturation for the y axis in volts */
 
-    uint32_t x_lower;           /**< The lower bound of the play field in the x axis (in encoder counts) */
-    uint32_t x_upper;           /**< The upper bound of the play field in the x axis (in encoder counts) */
-    uint32_t y_lower;           /**< The lower bound of the play field in the y axis (in encoder counts) */
-    uint32_t y_upper;           /**< The upper bound of the play field in the y axis (in encoder counts) */
+    float integral_x;           /**< Running integral in x */
+    float integral_y;           /**< Running integral in y */
+    float last_error_x;         /**< Last x error value (used for differential) */
+    float last_error_y;         /**< Last y error value (used for differential) */
 
-    int32_t x_offset;           /**< Encoder count offset */
-    int32_t y_offset;           /**< Encoder count offset */
+    float lower_x;              /**< The lower bound of the play field in the x axis (in mm) */
+    float lower_y;              /**< The lower bound of the play field in the y axis (in mm) */
+    float upper_x;              /**< The upper bound of the play field in the x axis (in mm) */
+    float upper_y;              /**< The upper bound of the play field in the y axis (in mm) */
+
+    uint32_t offset_x;          /**< Encoder count offset in x axis*/
+    uint32_t offset_y;          /**< Encoder count offset in y axis*/
+    int32_t offset_overflow_x;  /**< Encoder count offset over/under-flows in x axis */
+    int32_t offset_overflow_y;  /**< Encoder count offset over/under-flows in y axis */
+
+    uint32_t cal_max_x;         /**< Maximum encoder count value encountered in x axis */
+    uint32_t cal_min_x;         /**< Maximum encoder count value encountered in x axis */
+    uint32_t cal_max_y;         /**< Maximum encoder count value encountered in y axis */
+    uint32_t cal_min_y;         /**< Maximum encoder count value encountered in y axis */
+    int32_t cal_max_overflow_x; /**< Number of over/under-flows encountered in x axis while calibrating */
+    int32_t cal_min_overflow_x; /**< Number of over/under-flows encountered in x axis while calibrating */
+    int32_t cal_max_overflow_y; /**< Number of over/under-flows encountered in y axis while calibrating */
+    int32_t cal_min_overflow_y; /**< Number of over/under-flows encountered in y axis while calibrating */
 } mds_info_t;
 
 /* --- PRIVATE VARIABLES ---------------------------------------------------- */
 
-static mds_info_t mds_info = {  /**< MDS settings */
+static mds_info_t mds_info = {              /**< MDS settings */
     .mode               = MDS_MODE_UNINIT,
     .is_calibrated      = 0,
 
-    .x_command          = 0,
-    .y_command          = 0,
+    .setpoint_x         = 0,
+    .setpoint_y         = 0,
 
-    .x_count            = 0,
-    .y_count            = 0,
-    .x_overflows        = 0,
-    .y_overflows        = 0,
+    .count_x            = 0,
+    .count_y            = 0,
+    .overflow_x         = 0,
+    .overflow_y         = 0,
 
-    .kp                 = MDS_KP_DEFAULT,
-    .ki                 = MDS_KI_DEFAULT,
-    .kd                 = MDS_KD_DEFAULT,
+    .kp_x               = MDS_KP_DEFAULT,
+    .ki_x               = MDS_KI_DEFAULT,
+    .kd_x               = MDS_KD_DEFAULT,
+    .kp_y               = MDS_KP_DEFAULT,
+    .ki_y               = MDS_KI_DEFAULT,
+    .kd_y               = MDS_KD_DEFAULT,
 
-    .x_sat              = MDS_X_SAT_DEFAULT,
-    .y_sat              = MDS_Y_SAT_DEFAULT,
+    .sat_x              = MDS_SAT_DEFAULT_X,
+    .sat_y              = MDS_SAT_DEFAULT_Y,
 
-    .x_lower            = 0,
-    .x_upper            = 0,
-    .y_lower            = 0,
-    .y_upper            = 0,
+    .integral_x         = 0.0,
+    .integral_y         = 0.0,
+    .last_error_x       = 0.0,
+    .last_error_y       = 0.0,
 
-    .x_offset           = 0,
-    .y_offset           = 0,
+    .lower_x            = 0.0,
+    .lower_y            = 0.0,
+    .upper_x            = 0.0,
+    .upper_y            = 0.0,
+
+    .offset_x           = 0,
+    .offset_y           = 0,
+    .offset_overflow_x  = 0,
+    .offset_overflow_y  = 0,
+
+    .cal_max_x          = 0,
+    .cal_min_x          = 0,
+    .cal_max_y          = 0,
+    .cal_min_y          = 0,
+    .cal_max_overflow_x = 0,
+    .cal_min_overflow_x = 0,
+    .cal_max_overflow_y = 0,
+    .cal_min_overflow_y = 0,
 };
+
+static WORKING_AREA(mds_update_thread_wa, 1024);    /**< Stack area for update thread */
+static Thread* mds_update_thread;                   /**< Update thread variable */
 
 /* --- PRIVATE FUNCTION PROTOTYPES ------------------------------------------ */
 
 /**
- * @brief   Calculate the next PID iteration
+ * @brief   Thread to periodically update the PID
+ *
+ * @param context:          Unused
  */
-static void mds_update_pid(void);
+static msg_t mds_update_thread_f(void * context);
 
 /**
  * @brief Convert encoder counts to mm in the x dimension
  *
  * @param[in] counts:       Current encoder counter value
- * @param[in] overflows:    How many times the timer has over- or (if negative) under-flowed
+ * @param[in] overflow:     How many times the timer has over- or (if negative) under-flowed
  *
  * @return:                 The converted x coordinate
  */
-static inline uint32_t mds_count_to_mm_x(int32_t counts, int32_t overflows);
+static inline float mds_counts_to_mm_x(uint32_t counts, int32_t overflow);
 
 /**
  * @brief   Convert encoder counts to mm in the x dimension
  *
  * @param[in] counts:       Current encoder counter value
- * @param[in] overflows:    How many times the timer has over- or (if negative) under-flowed
+ * @param[in] overflow:    How many times the timer has over- or (if negative) under-flowed
  *
  * @return:                 The converted y coordinate
  */
-static inline uint32_t mds_count_to_mm_y(int32_t counts, int32_t overflows);
+static inline float mds_counts_to_mm_y(uint32_t counts, int32_t overflow);
 
 /**
- * @brief   Set the output command on the x axis to <volts>
+ * @brief   Set the output setpoint on the x axis to <volts>
+ *
+ * @note    Setting to 0.0 will turn off the motor
  *
  * @param[in] volts:        The value to set. Converted to PWM value
  */
 static inline void mds_set_output_x(float volts);
 
 /**
- * @brief   Set the output command on the x axis to <volts>
+ * @brief   Set the output setpoint on the x axis to <volts>
  *
+ * @note    Setting to 0.0 will turn off the motor
+ * 
  * @param[in] volts:        The value to set. Converted to PWM value
  */
 static inline void mds_set_output_y(float volts);
+
+/**
+ * @brief   Calculate which encoder count pair is greater
+ *
+ * @note    Uses lexicographical ordering, with overflow being the more significant value
+ *
+ * @param[in] count_1:      The number of counts for the first pair
+ * @param[in] overflow_1:   The number of over- (or under-) flows for the first pair
+ * @param[in] count_2:      The number of counts for the second pair
+ * @param[in] overflow_2:   The number of over- (or under-) flows for the second pair
+ *
+ * @return:                 True of 1 > 2, false otherwise
+ */
+static inline uint8_t mds_is_greater_count(uint32_t count_1, int32_t overflow_1, uint32_t count_2, int32_t overflow_2);
 
 /* --- PUBLIC FUNCTION DEFINITIONS ------------------------------------------ */
 
 void mds_init(void)
 {
-    // Initialize counters
-
-    // Initialize loop callback
+    // TODO: Initialize encoder counters
 
     // Set initial mode
     mds_info.mode = MDS_MODE_OFF;
+
+    // Start loop
+    mds_update_thread = chThdCreateStatic(mds_update_thread_wa, sizeof(mds_update_thread_wa),
+                                          HIGHPRIO,
+                                          mds_update_thread_f, NULL);
 }
 
-mds_err_t mds_set_pid(uint32_t kp, uint32_t ki, uint32_t kd)
+mds_err_t mds_set_pid_x(float kp_x, float ki_x, float kd_x, float sat_x, uint8_t reverse_x)
 {
     mds_err_t err;
 
@@ -169,9 +245,56 @@ mds_err_t mds_set_pid(uint32_t kp, uint32_t ki, uint32_t kd)
         case MDS_MODE_OFF:
         case MDS_MODE_CALIBRATING:
             // Record new loop parameters
-            mds_info.kp = kp;
-            mds_info.ki = ki;
-            mds_info.kd = kd;
+            if (reverse_x) {
+                mds_info.kp_x = 0.0 - kp_x;
+                mds_info.ki_x = 0.0 - ki_x;
+                mds_info.kd_x = 0.0 - kd_x;
+            }
+            else {
+                mds_info.kp_x = kp_x;
+                mds_info.ki_x = ki_x;
+                mds_info.kd_x = kd_x;
+            }
+
+            // Record saturation
+            mds_info.sat_x = sat_x;
+
+            // Indicate success
+            err = MDS_SUCCESS;
+            break;
+
+        default:
+            // Indicate failure
+            err = MDS_INVALID_MODE;
+            break;
+    }
+
+    return err;
+}
+
+mds_err_t mds_set_pid_y(float kp_y, float ki_y, float kd_y, float sat_y, uint8_t reverse_y)
+{
+    mds_err_t err;
+
+    // Check that we're in the correct mode to change loop parameters
+    switch (mds_info.mode) {
+        case MDS_MODE_UNINIT:
+        case MDS_MODE_OFF:
+        case MDS_MODE_CALIBRATING:
+            // Record new loop parameters
+            if (reverse_y) {
+                mds_info.kp_y = 0.0 - kp_y;
+                mds_info.ki_y = 0.0 - ki_y;
+                mds_info.kd_y = 0.0 - kd_y;
+            }
+            else {
+                mds_info.kp_y = kp_y;
+                mds_info.ki_y = ki_y;
+                mds_info.kd_y = kd_y;
+            }
+
+            // Record saturation
+            mds_info.sat_y = sat_y;
 
             // Indicate success
             err = MDS_SUCCESS;
@@ -195,12 +318,14 @@ mds_err_t mds_start_calibration(void)
     if (mds_info.mode != MDS_MODE_CALIBRATING) {
 
         // Record current location
-        mds_info.x_cal_min          = x_count;
-        mds_info.x_cal_max          = x_count;
-        mds_info.y_cal_min          = y_count;
-        mds_info.y_cal_max          = y_count;
-        mds_info.x_cal_overflows    = x_overflows;
-        mds_info.y_cal_overflows    = y_overflows;
+        mds_info.cal_min_x          = mds_info.count_x;
+        mds_info.cal_max_x          = mds_info.count_x;
+        mds_info.cal_min_y          = mds_info.count_y;
+        mds_info.cal_max_y          = mds_info.count_y;
+        mds_info.cal_min_overflow_x = mds_info.overflow_x;
+        mds_info.cal_max_overflow_x = mds_info.overflow_x;
+        mds_info.cal_min_overflow_y = mds_info.overflow_y;
+        mds_info.cal_max_overflow_y = mds_info.overflow_y;
 
         // Set calibration mode
         mds_info.mode = MDS_MODE_CALIBRATING;
@@ -212,53 +337,253 @@ mds_err_t mds_start_calibration(void)
 
 mds_err_t mds_stop_calibration(void)
 {
-    // Leave calibration mode
-    mds_info.mode           = MDS_MODE_OFF;
+    mds_err_t err;
 
-    // Calculate conversion factor
-    mds_calculate_conversion();
+    switch (mds_info.mode) {
+        case MDS_MODE_CALIBRATING:
+            // Leave calibration mode
+            mds_info.mode = MDS_MODE_OFF;
 
-    mds_info.is_calibrated  = 1;
+            // Set offset
+            mds_info.offset_x           = mds_info.cal_min_x;
+            mds_info.offset_y           = mds_info.cal_min_y;
+            mds_info.offset_overflow_x  = mds_info.cal_min_overflow_x;
+            mds_info.offset_overflow_y  = mds_info.cal_min_overflow_y;
+
+            // Calculate playfield
+            mds_info.lower_x = MDS_SAFETY_ZONE_MM_X;
+            mds_info.lower_y = MDS_SAFETY_ZONE_MM_Y;
+            mds_info.upper_x = mds_counts_to_mm_x(mds_info.cal_max_x, mds_info.cal_max_overflow_x) - MDS_SAFETY_ZONE_MM_X;
+            mds_info.upper_y = mds_counts_to_mm_y(mds_info.cal_max_y, mds_info.cal_max_overflow_y) - MDS_SAFETY_ZONE_MM_Y;
+
+            // Record that we're calibrated
+            mds_info.is_calibrated  = 1;
+
+            // Indicate success
+            err = MDS_SUCCESS;
+            break;
+            
+        default:
+            // Wrong mode
+            err = MDS_INVALID_MODE;
+            break;
+    }
+
+    return err;
 }
 
 mds_err_t mds_start(void)
 {
-    return MDS_FAIL;
+    mds_err_t err;
+    float location_x;
+    float location_y;
+
+    switch (mds_info.mode) {
+        case MDS_MODE_OFF:
+            // Make sure calibrated
+            if (mds_info.is_calibrated) {
+                // Clear integral
+                mds_info.integral_x = 0.0;
+                mds_info.integral_y = 0.0;
+
+                // Calculate initial error to avoid impulse on first timestep
+                location_x = mds_counts_to_mm_x(mds_info.count_x, mds_info.overflow_x);
+                location_y = mds_counts_to_mm_y(mds_info.count_y, mds_info.overflow_y);
+                mds_info.last_error_x = mds_info.setpoint_x - location_x;
+                mds_info.last_error_y = mds_info.setpoint_y - location_y;
+
+                // Turn on MDS
+                mds_info.mode = MDS_MODE_ON;
+
+                // Indicate success
+                err = MDS_SUCCESS;
+            }
+            else {
+                err = MDS_UNCALIBRATED;
+            }
+            break;
+
+        default:
+            err = MDS_INVALID_MODE;
+            break;
+    }
+
+    return err;
 }
 
 mds_err_t mds_stop(void)
 {
-    return MDS_FAIL;
+    // Record that we're off
+    mds_info.mode = MDS_MODE_OFF;
+
+    // Turn of both axes
+    mds_set_output_x(0.0);
+    mds_set_output_y(0.0);
+
+    return MDS_SUCCESS;
 }
 
-mds_err_t mds_set_location(uint32_t x_location, uint32_t y_location)
+mds_err_t mds_set_location(float setpoint_x, float setpoint_y)
 {
-    (void) x_location;
-    (void) y_location;
+    mds_err_t err;
 
-    return MDS_FAIL;
+    switch (mds_info.mode) {
+        case MDS_MODE_ON:
+            err = MDS_SUCCESS;
+
+            // Record new setpoint
+            if (setpoint_x > mds_info.upper_x) {
+                mds_info.setpoint_x = mds_info.upper_x;
+                err = MDS_OUT_OF_BOUNDS;
+            }
+            else if (setpoint_x < mds_info.lower_x) {
+                mds_info.setpoint_x = mds_info.lower_x;
+                err = MDS_OUT_OF_BOUNDS;
+            }
+            else mds_info.setpoint_x = setpoint_x;
+
+            if (setpoint_y > mds_info.upper_y) {
+                mds_info.setpoint_y = mds_info.upper_y;
+                err = MDS_OUT_OF_BOUNDS;
+            }
+            else if (setpoint_y < mds_info.lower_y) {
+                mds_info.setpoint_y = mds_info.lower_y;
+                err = MDS_OUT_OF_BOUNDS;
+            }
+            else mds_info.setpoint_y = setpoint_y;
+
+            break;
+
+        default:
+            // Wrong mode
+            err = MDS_INVALID_MODE;
+            break;
+    }
+
+    return err;
 }
 
 /* --- PRIVATE FUNCTION DEFINITIONS ----------------------------------------- */
 
-static void mds_update_pid(void)
+static msg_t mds_update_thread_f(void * context)
 {
-}
+    (void) context;
 
-static inline uint32_t mds_count_to_mm_x(int32_t counts, int32_t overflows)
-{
-    (void) counts;
-    (void) overflows;
+    float location_x;
+    float location_y;
+    float error_x;
+    float error_y;
+    float differential_x;
+    float differential_y;
+    float command_x;
+    float command_y;
+    systime_t next_time;
 
+    // Record start time
+    next_time = chTimeNow();
+
+    while (TRUE) {
+        // Figure out the next time to wake up
+        next_time += MS2ST(MDS_LOOP_TIME_MS);
+
+        // TODO: Read encoder counters
+
+        switch (mds_info.mode) {
+            case MDS_MODE_ON:
+                // Convert location to mm
+                location_x = mds_counts_to_mm_x(mds_info.count_x, mds_info.overflow_x);
+                location_y = mds_counts_to_mm_y(mds_info.count_y, mds_info.overflow_y);
+
+                // Calculate error
+                error_x = mds_info.setpoint_x - location_x;
+                error_y = mds_info.setpoint_y - location_y;
+
+                // Update integral
+                mds_info.integral_x += error_x * MDS_LOOP_TIME_MS;
+                mds_info.integral_y += error_y * MDS_LOOP_TIME_MS;
+
+                // Calculate differential
+                differential_x = (error_x - mds_info.last_error_x) / MDS_LOOP_TIME_MS;
+                differential_y = (error_y - mds_info.last_error_y) / MDS_LOOP_TIME_MS;
+                mds_info.last_error_x = error_x;
+                mds_info.last_error_y = error_y;
+
+                // Calculate command
+                command_x = mds_info.kp_x * error_x             +
+                            mds_info.ki_x * mds_info.integral_x + 
+                            mds_info.kd_x * differential_x;
+                command_y = mds_info.kp_y * error_y             +
+                            mds_info.ki_y * mds_info.integral_y + 
+                            mds_info.kd_y * differential_y;
+
+                // Set command
+                mds_set_output_x(command_x);
+                mds_set_output_y(command_y);
+                break;
+
+            case MDS_MODE_CALIBRATING:
+                // Check if we have an extreme value in the x axis. If so, record it
+                if (mds_is_greater_count(mds_info.count_x,   mds_info.overflow_x,
+                                         mds_info.cal_max_x, mds_info.cal_max_overflow_x)) {
+                    mds_info.cal_max_x          = mds_info.count_x;
+                    mds_info.cal_max_overflow_x = mds_info.overflow_x;
+                }
+                else if (mds_is_greater_count(mds_info.cal_min_x, mds_info.cal_min_overflow_x,
+                                              mds_info.count_x,   mds_info.overflow_x)) {
+                    mds_info.cal_min_x          = mds_info.count_x;
+                    mds_info.cal_min_overflow_x = mds_info.overflow_x;
+                }
+
+                // Check if we have an extreme value in the y axis. If so, record it
+                if (mds_is_greater_count(mds_info.count_y,   mds_info.overflow_y,
+                                         mds_info.cal_max_y, mds_info.cal_max_overflow_y)) {
+                    mds_info.cal_max_y          = mds_info.count_y;
+                    mds_info.cal_max_overflow_y = mds_info.overflow_y;
+                }
+                else if (mds_is_greater_count(mds_info.cal_min_y, mds_info.cal_min_overflow_y,
+                                              mds_info.count_y,   mds_info.overflow_y)) {
+                    mds_info.cal_min_y          = mds_info.count_y;
+                    mds_info.cal_min_overflow_y = mds_info.overflow_y;
+                }
+
+                // Ensure the motors are off
+                mds_set_output_x(0.0);
+                mds_set_output_y(0.0);
+                break;
+
+            default:
+                // Ensure the motors are off
+                mds_set_output_x(0.0);
+                mds_set_output_y(0.0);
+                break;
+        }
+
+        // Sleep until next time
+        chThdSleepUntil(next_time);
+    }
+
+    // Pedantic; unreachable
     return 0;
 }
 
-static inline uint32_t mds_count_to_mm_y(int32_t counts, int32_t overflows)
+static inline float mds_counts_to_mm_x(uint32_t counts, int32_t overflow)
 {
-    (void) counts;
-    (void) overflows;
+    // Apply offset and calculate real value from overflows
+    float total_counts = (float) counts + (float) mds_info.offset_x + 
+                         ((float) MDS_MAX_COUNT_VALUE_X) * (((float) overflow) + ((float) mds_info.offset_overflow_x));
 
-    return 0;
+    // Convert counts to mm
+    return total_counts/MDS_COUNTS_PER_MM_X;
+}
+
+static inline float mds_counts_to_mm_y(uint32_t counts, int32_t overflow)
+{
+    // Apply offset and calculate real value from overflows
+    float total_counts = (float) counts + (float) mds_info.offset_y + 
+                         ((float) MDS_MAX_COUNT_VALUE_Y) * (((float) overflow) + ((float) mds_info.offset_overflow_y));
+
+    // Convert counts to mm
+    return total_counts/MDS_COUNTS_PER_MM_Y;
 }
 
 static inline void mds_set_output_x(float volts)
@@ -269,6 +594,12 @@ static inline void mds_set_output_x(float volts)
 static inline void mds_set_output_y(float volts)
 {
     (void) volts;
+}
+
+static inline uint8_t mds_is_greater_count(uint32_t count_1, int32_t overflow_1, uint32_t count_2, int32_t overflow_2)
+{
+    // Lexicographical order. (a1, b1) > (a2, b2) if (a1 > a2) or (a1 == a2 && b1 > b2)
+    return (overflow_1 == overflow_2) ? count_1 > count_2 : overflow_1 > overflow_2;
 }
 
 /**

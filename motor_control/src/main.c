@@ -16,7 +16,7 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "test.h"
+#include "mds.h"
 
 /*
  * This is a periodic thread that does absolutely nothing except flashing LEDs.
@@ -85,14 +85,9 @@ int main(void) {
    */
   chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
 
-  /*
-   * Normal main() thread activity, in this demo it does nothing except
-   * sleeping in a loop and check the button state, when the button is
-   * pressed the test procedure is launched.
-   */
+  mds_init();
+
   while (TRUE) {
-    if (palReadPad(GPIOA, GPIOA_BUTTON))
-      TestThread(&SD1);
     chThdSleepMilliseconds(500);
   }
 }
