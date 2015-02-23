@@ -20,10 +20,14 @@
 
 /* --- PUBLIC DEFINES ------------------------------------------------------- */
 
-#define GPIOA_TIM2_CH1  (0)
-#define GPIOA_TIM2_CH2  (1)
-#define GPIOA_TIM3_CH1  (6)
-#define GPIOA_TIM3_CH2  (4)
+#define TIM2_CH1_PORT     GPIOA
+#define TIM2_CH1_PIN      (15)
+#define TIM2_CH2_PORT     GPIOB
+#define TIM2_CH2_PIN      (3)
+#define TIM3_CH1_PORT     GPIOC
+#define TIM3_CH1_PIN      (6)
+#define TIM3_CH2_PORT     GPIOC
+#define TIM3_CH2_PIN      (7)
 
 /* --- PUBLIC DATA TYPES ---------------------------------------------------- */
 

@@ -262,14 +262,16 @@ void mds_init(void)
     nvicEnableVector(TIM3_IRQn, CORTEX_PRIORITY_MASK(12));
 
     // Configure pins
-    palSetPadMode(GPIOA, GPIOA_TIM2_CH1, PAL_MODE_INPUT_ANALOG);
-    palSetPadMode(GPIOA, GPIOA_TIM2_CH2, PAL_MODE_INPUT_ANALOG);
-    palSetPadMode(GPIOA, GPIOA_TIM3_CH1, PAL_MODE_INPUT_ANALOG);
-    palSetPadMode(GPIOA, GPIOA_TIM3_CH2, PAL_MODE_INPUT_ANALOG);
+    palSetPadMode(TIM2_CH1_PORT, TIM2_CH1_PIN, PAL_MODE_ALTERNATE(1));
+    palSetPadMode(TIM2_CH2_PORT, TIM2_CH2_PIN, PAL_MODE_ALTERNATE(1));
+    palSetPadMode(TIM3_CH1_PORT, TIM3_CH1_PIN, PAL_MODE_ALTERNATE(2));
+    palSetPadMode(TIM3_CH2_PORT, TIM3_CH2_PIN, PAL_MODE_ALTERNATE(2));
     
     // Enable counters
     TIM_Cmd(TIM2, ENABLE);
     TIM_Cmd(TIM3, ENABLE);
+
+    // Enable PWM
     
     // Set initial mode
     mds_info.mode = MDS_MODE_OFF;
@@ -537,9 +539,9 @@ static msg_t mds_update_thread_f(void * context)
         // Get latest location
         mds_info.count_x = TIM2->CNT;
         mds_info.count_y = TIM3->CNT;
-
-        chprintf((BaseSequentialStream*) &(SD1), "x:%d\txov:%d\r\n", mds_info.count_x, mds_info.overflow_x);
-        chprintf((BaseSequentialStream*) &(SD1), "y:%d\tyov:%d\r\n", mds_info.count_y, mds_info.overflow_y);
+        
+        chprintf((BaseSequentialStream*) &(SD1), "x:%u\txov:%d\r\n", mds_info.count_x, mds_info.overflow_x);
+        chprintf((BaseSequentialStream*) &(SD1), "y:%u\tyov:%d\r\n", mds_info.count_y, mds_info.overflow_y);
 
         switch (mds_info.mode) {
             case MDS_MODE_ON:
