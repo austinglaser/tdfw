@@ -20,13 +20,14 @@
 // Chibios
 #include "ch.h"
 #include "hal.h"
+#include "chprintf.h"
 
 // Project
 #include "mds.h"
 
 /* --- PRIVATE DEFINITIONS -------------------------------------------------- */
 
-#define MDS_LOOP_TIME_MS        (10)
+#define MDS_LOOP_TIME_MS        (1000)
 
 #define MDS_KP_DEFAULT          (0.01)  /**< Default proportional loop constant */
 #define MDS_KI_DEFAULT          (0.01)  /**< Default integral loop constant */
@@ -122,8 +123,8 @@ static mds_info_t mds_info = {              /**< MDS settings */
 
     .count_x            = 0,
     .count_y            = 0,
-    .overflow_x         = 0,
-    .overflow_y         = 0,
+    .overflow_x         = -1,
+    .overflow_y         = -1,
 
     .kp_x               = MDS_KP_DEFAULT,
     .ki_x               = MDS_KI_DEFAULT,
@@ -252,7 +253,7 @@ void mds_init(void)
     TIM3_CFG.TIM_CounterMode = TIM_CounterMode_Up;
 
     TIM_TimeBaseInit(TIM3, &TIM3_CFG);
-    TIM_EncoderInterfaceConfig(TIM2, TIM_EncoderMode_TI12, TIM_ICPolarity_Rising, TIM_ICPolarity_Rising);
+    TIM_EncoderInterfaceConfig(TIM3, TIM_EncoderMode_TI12, TIM_ICPolarity_Rising, TIM_ICPolarity_Rising);
 
     // Set up overflow interrupts
     TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
@@ -537,6 +538,9 @@ static msg_t mds_update_thread_f(void * context)
         mds_info.count_x = TIM2->CNT;
         mds_info.count_y = TIM3->CNT;
 
+        chprintf((BaseSequentialStream*) &(SD1), "x:%d\txov:%d\r\n", mds_info.count_x, mds_info.overflow_x);
+        chprintf((BaseSequentialStream*) &(SD1), "y:%d\tyov:%d\r\n", mds_info.count_y, mds_info.overflow_y);
+
         switch (mds_info.mode) {
             case MDS_MODE_ON:
                 // Convert location to mm
@@ -663,8 +667,8 @@ CH_IRQ_HANDLER(STM32_TIM2_HANDLER)
     if(TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET)
     {
         // Determine if over/underflow
-        if (TIM2->CNT >= UINT32_MAX/2) (mds_info.overflow_x)++;
-        else                           (mds_info.overflow_x)--;
+        if (TIM2->CNT >= UINT32_MAX/2) (mds_info.overflow_x)--;
+        else                           (mds_info.overflow_x)++;
 
         // Clear interrupt bit
         TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
@@ -685,8 +689,8 @@ CH_IRQ_HANDLER(STM32_TIM3_HANDLER)
     if(TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)
     {
         // Determine if over/underflow
-        if (TIM3->CNT >= UINT16_MAX/2) (mds_info.overflow_x)++;
-        else                           (mds_info.overflow_x)--;
+        if (TIM3->CNT >= UINT16_MAX/2) (mds_info.overflow_y)--;
+        else                           (mds_info.overflow_y)++;
 
         // Clear interrupt bit
         TIM_ClearITPendingBit(TIM3, TIM_IT_Update);

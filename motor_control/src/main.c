@@ -96,6 +96,5 @@ int main(void) {
 
   while (TRUE) {
     chThdSleepMilliseconds(500);
-    chprintf((BaseSequentialStream*) &SD1, "test\r\n");
   }
 }
