@@ -12,6 +12,7 @@
 
 // Standard
 #include <stdint.h>
+#include <math.h>
 
 // Standard Peripheral
 #include "stm32f30x_tim.h"
@@ -167,8 +168,8 @@ static mds_info_t mds_info = {              /**< MDS settings */
 
     .count_x            = 0,
     .count_y            = 0,
-    .overflow_x         = -1,
-    .overflow_y         = -1,
+    .overflow_x         = -1,       // Monkey patch to make first encoder interrupt set it to zero
+    .overflow_y         = -1,       // Monkey patch to make first encoder interrupt set it to zero
 
     .kp_x               = MDS_KP_DEFAULT,
     .ki_x               = MDS_KI_DEFAULT,
@@ -207,6 +208,7 @@ static mds_info_t mds_info = {              /**< MDS settings */
 
 static WORKING_AREA(mds_update_thread_wa, 1024);    /**< Stack area for update thread */
 static Thread* mds_update_thread;                   /**< Update thread variable */
+static Semaphore mds_lock_sem;
 
 /* --- PRIVATE FUNCTION PROTOTYPES ------------------------------------------ */
 
@@ -273,22 +275,14 @@ static inline uint8_t mds_is_greater_count(uint32_t count_1, int32_t overflow_1,
 
 void mds_init(void)
 {
-    PRINT("init\r\n");
-
-    float x = 5.5;
-    float y = 3.2;
-
-    // This makes everything work. I DON'T KNOW WHY
-    chprintf((BaseSequentialStream*) &SD1, "%f\r\n", x);
-    chprintf((BaseSequentialStream*) &SD1, "%f\r\n", y);
-    chprintf((BaseSequentialStream*) &SD1, "%f\r\n", x + y);
-    chprintf((BaseSequentialStream*) &SD1, "%f\r\n", x - y);
-    chprintf((BaseSequentialStream*) &SD1, "%f\r\n", x * y);
-    chprintf((BaseSequentialStream*) &SD1, "%f\r\n", x / y);
-
     TIM_TimeBaseInitTypeDef TIM2_CFG;
     TIM_TimeBaseInitTypeDef TIM3_CFG;
     PWMConfig pwm_config;
+
+    PRINT("init\r\n");
+
+    // Start semaphore locked
+    chSemInit(&mds_lock_sem, 0);
 
     // Initialize clocks
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
@@ -366,11 +360,18 @@ void mds_init(void)
     mds_update_thread = chThdCreateStatic(mds_update_thread_wa, sizeof(mds_update_thread_wa),
                                           HIGHPRIO,
                                           mds_update_thread_f, NULL);
+    // Release lock
+    chSemSignal(&mds_lock_sem);
 }
 
 mds_err_t mds_set_pid_x(float kp_x, float ki_x, float kd_x, float sat_x, uint8_t reverse_x)
 {
     mds_err_t err;
+
+    // Lock
+    chSemWait(&mds_lock_sem);
+
+    PRINT("set_pid_x\r\n");
 
     // Check that we're in the correct mode to change loop parameters
     switch (mds_info.mode) {
@@ -402,12 +403,20 @@ mds_err_t mds_set_pid_x(float kp_x, float ki_x, float kd_x, float sat_x, uint8_t
             break;
     }
 
+    // Release lock
+    chSemSignal(&mds_lock_sem);
+
     return err;
 }
 
 mds_err_t mds_set_pid_y(float kp_y, float ki_y, float kd_y, float sat_y, uint8_t reverse_y)
 {
     mds_err_t err;
+
+    // Lock
+    chSemWait(&mds_lock_sem);
+
+    PRINT("set_pid_x\r\n");
 
     // Check that we're in the correct mode to change loop parameters
     switch (mds_info.mode) {
@@ -439,6 +448,9 @@ mds_err_t mds_set_pid_y(float kp_y, float ki_y, float kd_y, float sat_y, uint8_t
             break;
     }
 
+    // Release lock
+    chSemSignal(&mds_lock_sem);
+
     return err;
 }
 
@@ -447,9 +459,12 @@ mds_err_t mds_start_calibration(void)
     // Stop movement
     mds_stop();
 
+    // Lock
+    chSemWait(&mds_lock_sem);
+    PRINT("start_calibration\r\n");
+
     // Check the mode
     if (mds_info.mode != MDS_MODE_CALIBRATING) {
-
         // Record current location
         mds_info.cal_min_x          = mds_info.count_x;
         mds_info.cal_max_x          = mds_info.count_x;
@@ -464,6 +479,9 @@ mds_err_t mds_start_calibration(void)
         mds_info.mode = MDS_MODE_CALIBRATING;
     }
 
+    // Release lock
+    chSemSignal(&mds_lock_sem);
+
     // Indicate success
     return MDS_SUCCESS;
 }
@@ -471,6 +489,10 @@ mds_err_t mds_start_calibration(void)
 mds_err_t mds_stop_calibration(void)
 {
     mds_err_t err;
+
+    // Lock
+    chSemWait(&mds_lock_sem);
+    PRINT("stop_calibration\r\n");
 
     switch (mds_info.mode) {
         case MDS_MODE_CALIBRATING:
@@ -502,11 +524,18 @@ mds_err_t mds_stop_calibration(void)
             break;
     }
 
+    // Release lock
+    chSemSignal(&mds_lock_sem);
+
     return err;
 }
 
 mds_err_t mds_start(void)
 {
+    // Lock for critical section
+    chSemWait(&mds_lock_sem);
+    PRINT("start\r\n");
+
     mds_err_t err;
     float location_x;
     float location_y;
@@ -541,11 +570,18 @@ mds_err_t mds_start(void)
             break;
     }
 
+    // Release lock
+    chSemSignal(&mds_lock_sem);
+
     return err;
 }
 
 mds_err_t mds_stop(void)
 {
+    // Lock for critical section
+    chSemWait(&mds_lock_sem);
+    PRINT("stop\r\n");
+
     // Record that we're off
     mds_info.mode = MDS_MODE_OFF;
 
@@ -553,12 +589,19 @@ mds_err_t mds_stop(void)
     mds_set_output_x(0.0);
     mds_set_output_y(0.0);
 
+    // Release lock
+    chSemSignal(&mds_lock_sem);
+
     return MDS_SUCCESS;
 }
 
 mds_err_t mds_set_location(float setpoint_x, float setpoint_y)
 {
     mds_err_t err;
+
+    // Lock 
+    chSemWait(&mds_lock_sem);
+    PRINT("set_location\r\n");
 
     switch (mds_info.mode) {
         case MDS_MODE_ON:
@@ -593,6 +636,9 @@ mds_err_t mds_set_location(float setpoint_x, float setpoint_y)
             break;
     }
 
+    // Release lock
+    chSemSignal(&mds_lock_sem);
+
     return err;
 }
 
@@ -613,12 +659,17 @@ static msg_t mds_update_thread_f(void * context)
     systime_t next_time;
 
     // Record start time
-    next_time = chTimeNow();
+    next_time = chTimeNow() + MS2ST(MDS_LOOP_TIME_MS);
 
     while (TRUE) {
+        // Sleep until next time
+        chThdSleepUntil(next_time);
+
         // Figure out the next time to wake up
         next_time += MS2ST(MDS_LOOP_TIME_MS);
 
+        // Lock 
+        chSemWait(&mds_lock_sem);
         PRINT("update\r\n");
 
         // Wait till overflows are dealt with
@@ -698,13 +749,13 @@ static msg_t mds_update_thread_f(void * context)
                 break;
         }
 
-        if (chTimeNow() > next_time) {
+        if (chTimeNow() >= next_time) {
             PRINT("Uh oh\r\n");
             next_time += MDS_LOOP_TIME_MS;
         }
 
-        // Sleep until next time
-        chThdSleepUntil(next_time);
+        // Release lock
+        chSemSignal(&mds_lock_sem);
     }
 
     // Pedantic; unreachable
@@ -713,6 +764,8 @@ static msg_t mds_update_thread_f(void * context)
 
 static inline float mds_counts_to_mm_x(uint32_t counts, int32_t overflow)
 {
+    PRINT("counts_to_mm_x\r\n");
+
     // Apply offset and calculate real value from overflows
     float total_counts = (float) counts + (float) mds_info.offset_x + 
                          ((float) MDS_MAX_COUNT_VALUE_X) * (((float) overflow) + ((float) mds_info.offset_overflow_x));
@@ -723,6 +776,8 @@ static inline float mds_counts_to_mm_x(uint32_t counts, int32_t overflow)
 
 static inline float mds_counts_to_mm_y(uint32_t counts, int32_t overflow)
 {
+    PRINT("counts_to_mm_y\r\n");
+
     // Apply offset and calculate real value from overflows
     float total_counts = (float) counts + (float) mds_info.offset_y + 
                          ((float) MDS_MAX_COUNT_VALUE_Y) * (((float) overflow) + ((float) mds_info.offset_overflow_y));
@@ -733,6 +788,8 @@ static inline float mds_counts_to_mm_y(uint32_t counts, int32_t overflow)
 
 static inline void mds_set_output_x(float volts)
 {
+    PRINT("set_output_x\r\n");
+
     // If we're close to zero, just turn off the channel
     if (-0.1 <= volts && volts <= 0.1) {
         // Turn off enable
@@ -759,7 +816,7 @@ static inline void mds_set_output_x(float volts)
         if (volts > mds_info.sat_x) volts = mds_info.sat_x;
 
         // Calculate duty cycle percentage (in 100ths of percent)
-        uint32_t percentage = (uint32_t) (volts * 10000.0 / 24.0);
+        uint32_t percentage = (uint32_t) lroundf((volts * 10000.0) / 24.0);
         pwmEnableChannel(&PWMD1, DRIVE_X_CHANNEL, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, percentage));
 
         // Enable channel
@@ -769,6 +826,8 @@ static inline void mds_set_output_x(float volts)
 
 static inline void mds_set_output_y(float volts)
 {
+    PRINT("set_output_y\r\n");
+
     // If we're close to zero, just turn off the channel
     if (-0.1 <= volts && volts <= 0.1) {
         // Turn off enable
@@ -795,7 +854,7 @@ static inline void mds_set_output_y(float volts)
         if (volts > mds_info.sat_y) volts = mds_info.sat_y;
 
         // Calculate duty cycle percentage (in 100ths of percent)
-        uint32_t percentage = (uint32_t) (volts * 10000.0 / 24.0);
+        uint32_t percentage = (uint32_t) lroundf((volts * 10000.0) / 24.0);
         pwmEnableChannel(&PWMD1, DRIVE_Y_CHANNEL, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, percentage));
 
         // Enable channel
@@ -805,6 +864,8 @@ static inline void mds_set_output_y(float volts)
 
 static inline uint8_t mds_is_greater_count(uint32_t count_1, int32_t overflow_1, uint32_t count_2, int32_t overflow_2)
 {
+    PRINT("is_greater_count\r\n");
+
     // Lexicographical order. (a1, b1) > (a2, b2) if (a1 > a2) or (a1 == a2 && b1 > b2)
     return (overflow_1 == overflow_2) ? count_1 > count_2 : overflow_1 > overflow_2;
 }

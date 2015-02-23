@@ -70,6 +70,13 @@ int main(void) {
   // Init mds
   mds_init();
 
+  chprintf((BaseSequentialStream*) &SD1, "calibrating...\r\n");
+  mds_start_calibration();
+  chThdSleepMilliseconds(10000);
+
+  mds_stop_calibration();
+  chprintf((BaseSequentialStream*) &SD1, "done calibrating...\r\n");
+
   while (TRUE) {
     chThdSleepMilliseconds(500);
   }
