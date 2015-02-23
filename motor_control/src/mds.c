@@ -13,6 +13,10 @@
 // Standard
 #include <stdint.h>
 
+// Standard Peripheral
+#include "stm32f30x_tim.h"
+#include "stm32f30x_rcc.h"
+
 // Chibios
 #include "ch.h"
 #include "hal.h"
@@ -224,8 +228,48 @@ static inline uint8_t mds_is_greater_count(uint32_t count_1, int32_t overflow_1,
 
 void mds_init(void)
 {
-    // TODO: Initialize encoder counters
+    TIM_TimeBaseInitTypeDef TIM2_CFG;
+    TIM_TimeBaseInitTypeDef TIM3_CFG;
 
+    // Initialize clocks
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+
+    // Initialize encoder counters
+    // X
+    TIM2_CFG.TIM_Prescaler = 0;
+    TIM2_CFG.TIM_Period = UINT32_MAX;
+    TIM2_CFG.TIM_ClockDivision = TIM_CKD_DIV1;
+    TIM2_CFG.TIM_CounterMode = TIM_CounterMode_Up;
+
+    TIM_TimeBaseInit(TIM2, &TIM2_CFG);
+    TIM_EncoderInterfaceConfig(TIM2, TIM_EncoderMode_TI1, TIM_ICPolarity_Rising, TIM_ICPolarity_Rising);
+
+    // Y
+    TIM3_CFG.TIM_Prescaler = 0;
+    TIM3_CFG.TIM_Period = UINT16_MAX;
+    TIM3_CFG.TIM_ClockDivision = TIM_CKD_DIV1;
+    TIM3_CFG.TIM_CounterMode = TIM_CounterMode_Up;
+
+    TIM_TimeBaseInit(TIM3, &TIM3_CFG);
+    TIM_EncoderInterfaceConfig(TIM2, TIM_EncoderMode_TI12, TIM_ICPolarity_Rising, TIM_ICPolarity_Rising);
+
+    // Set up overflow interrupts
+    TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
+    TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+    nvicEnableVector(TIM2_IRQn, CORTEX_PRIORITY_MASK(12));
+    nvicEnableVector(TIM3_IRQn, CORTEX_PRIORITY_MASK(12));
+
+    // Configure pins
+    palSetPadMode(GPIOA, GPIOA_TIM2_CH1, PAL_MODE_INPUT_ANALOG);
+    palSetPadMode(GPIOA, GPIOA_TIM2_CH2, PAL_MODE_INPUT_ANALOG);
+    palSetPadMode(GPIOA, GPIOA_TIM3_CH1, PAL_MODE_INPUT_ANALOG);
+    palSetPadMode(GPIOA, GPIOA_TIM3_CH2, PAL_MODE_INPUT_ANALOG);
+    
+    // Enable counters
+    TIM_Cmd(TIM2, ENABLE);
+    TIM_Cmd(TIM3, ENABLE);
+    
     // Set initial mode
     mds_info.mode = MDS_MODE_OFF;
 
@@ -416,7 +460,7 @@ mds_err_t mds_stop(void)
     // Record that we're off
     mds_info.mode = MDS_MODE_OFF;
 
-    // Turn of both axes
+    // Turn off both axes
     mds_set_output_x(0.0);
     mds_set_output_y(0.0);
 
@@ -486,7 +530,12 @@ static msg_t mds_update_thread_f(void * context)
         // Figure out the next time to wake up
         next_time += MS2ST(MDS_LOOP_TIME_MS);
 
-        // TODO: Read encoder counters
+        // Wait till overflows are dealt with
+        while((TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET) || (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET));
+
+        // Get latest location
+        mds_info.count_x = TIM2->CNT;
+        mds_info.count_y = TIM3->CNT;
 
         switch (mds_info.mode) {
             case MDS_MODE_ON:
@@ -600,6 +649,52 @@ static inline uint8_t mds_is_greater_count(uint32_t count_1, int32_t overflow_1,
 {
     // Lexicographical order. (a1, b1) > (a2, b2) if (a1 > a2) or (a1 == a2 && b1 > b2)
     return (overflow_1 == overflow_2) ? count_1 > count_2 : overflow_1 > overflow_2;
+}
+
+/* --- INTERRUPT HANDLERS --------------------------------------------------- */
+
+CH_IRQ_HANDLER(STM32_TIM2_HANDLER)
+{
+    // Chibios pre-interrupt routines
+    CH_IRQ_PROLOGUE();
+    chSysLockFromIsr();
+
+    // Check for the update flag
+    if(TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET)
+    {
+        // Determine if over/underflow
+        if (TIM2->CNT >= UINT32_MAX/2) (mds_info.overflow_x)++;
+        else                           (mds_info.overflow_x)--;
+
+        // Clear interrupt bit
+        TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
+    }
+
+    // Chibios post interrupt routines
+    chSysUnlockFromIsr();
+    CH_IRQ_EPILOGUE();
+}
+
+CH_IRQ_HANDLER(STM32_TIM3_HANDLER)
+{
+    // Chibios pre-interrupt routines
+    CH_IRQ_PROLOGUE();
+    chSysLockFromIsr();
+
+    // Check for the update flag
+    if(TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)
+    {
+        // Determine if over/underflow
+        if (TIM3->CNT >= UINT16_MAX/2) (mds_info.overflow_x)++;
+        else                           (mds_info.overflow_x)--;
+
+        // Clear interrupt bit
+        TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+    }
+
+    // Chibios post interrupt routines
+    chSysUnlockFromIsr();
+    CH_IRQ_EPILOGUE();
 }
 
 /**

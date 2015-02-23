@@ -18,6 +18,13 @@
 // Standard
 #include <stdint.h>
 
+/* --- PUBLIC DEFINES ------------------------------------------------------- */
+
+#define GPIOA_TIM2_CH1  (0)
+#define GPIOA_TIM2_CH2  (1)
+#define GPIOA_TIM3_CH1  (6)
+#define GPIOA_TIM3_CH2  (4)
+
 /* --- PUBLIC DATA TYPES ---------------------------------------------------- */
 
 /**
