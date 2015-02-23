@@ -5,6 +5,10 @@
 *.o
 *.lst
 
+# Eclipse files
+.project
+.cproject
+
 # Executables
 test
 *.bin
