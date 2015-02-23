@@ -27,14 +27,56 @@
 
 /* --- PRIVATE DEFINITIONS -------------------------------------------------- */
 
-#define MDS_LOOP_TIME_MS        (1000)
+// X encoder
+#define ENC_A_X_PORT    GPIOA
+#define ENC_A_X_PIN     (15)
+#define ENC_A_X_AF      (1)
+
+#define ENC_B_X_PORT    GPIOB
+#define ENC_B_X_PIN     (3)
+#define ENC_B_X_AF      (1)
+
+// Y Encoder
+#define ENC_A_Y_PORT    GPIOC
+#define ENC_A_Y_PIN     (6)
+#define ENC_A_Y_AF      (2)
+
+#define ENC_B_Y_PORT    GPIOC
+#define ENC_B_Y_PIN     (7)
+#define ENC_B_Y_AF      (2)
+
+// X Drive
+#define DRIVE_X_CHANNEL (0)
+#define DRIVE_X_PORT    GPIOE
+#define DRIVE_X_PIN     (9)
+#define DRIVE_X_AF      (2)
+
+#define DIR_X_PORT      GPIOE
+#define DIR_X_PIN       (10)
+
+#define EN_X_PORT       GPIOE
+#define EN_X_PIN        (13)
+
+// Y Drive
+#define DRIVE_Y_CHANNEL (1)
+#define DRIVE_Y_PORT    GPIOE
+#define DRIVE_Y_PIN     (11)
+#define DRIVE_Y_AF      (2)
+
+#define DIR_Y_PORT      GPIOE
+#define DIR_Y_PIN       (12)
+
+#define EN_Y_PORT       GPIOE
+#define EN_Y_PIN        (14)
+
+#define MDS_LOOP_TIME_MS        (10)
 
 #define MDS_KP_DEFAULT          (0.01)  /**< Default proportional loop constant */
 #define MDS_KI_DEFAULT          (0.01)  /**< Default integral loop constant */
 #define MDS_KD_DEFAULT          (0.01)  /**< Default differential loop constant */
 
-#define MDS_SAT_DEFAULT_X       (5.0)   /**< Default x saturation value in volts */
-#define MDS_SAT_DEFAULT_Y       (5.0)   /**< Default y saturation value in volts */
+#define MDS_SAT_DEFAULT_X       (24.0)  /**< Default x saturation value in volts */
+#define MDS_SAT_DEFAULT_Y       (24.0)  /**< Default y saturation value in volts */
 
 #define MDS_SAFETY_ZONE_MM_X    (100.0) 
 #define MDS_SAFETY_ZONE_MM_Y    (50.0)
@@ -47,6 +89,8 @@
 
 #define MDS_MAX_COUNT_VALUE_X   UINT32_MAX
 #define MDS_MAX_COUNT_VALUE_Y   UINT16_MAX
+
+#define PRINT(string)           chprintf((BaseSequentialStream*) &SD1, (string))
 
 /* --- PRIVATE DATA TYPES --------------------------------------------------- */
 
@@ -229,8 +273,22 @@ static inline uint8_t mds_is_greater_count(uint32_t count_1, int32_t overflow_1,
 
 void mds_init(void)
 {
+    PRINT("init\r\n");
+
+    float x = 5.5;
+    float y = 3.2;
+
+    // This makes everything work. I DON'T KNOW WHY
+    chprintf((BaseSequentialStream*) &SD1, "%f\r\n", x);
+    chprintf((BaseSequentialStream*) &SD1, "%f\r\n", y);
+    chprintf((BaseSequentialStream*) &SD1, "%f\r\n", x + y);
+    chprintf((BaseSequentialStream*) &SD1, "%f\r\n", x - y);
+    chprintf((BaseSequentialStream*) &SD1, "%f\r\n", x * y);
+    chprintf((BaseSequentialStream*) &SD1, "%f\r\n", x / y);
+
     TIM_TimeBaseInitTypeDef TIM2_CFG;
     TIM_TimeBaseInitTypeDef TIM3_CFG;
+    PWMConfig pwm_config;
 
     // Initialize clocks
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
@@ -246,6 +304,11 @@ void mds_init(void)
     TIM_TimeBaseInit(TIM2, &TIM2_CFG);
     TIM_EncoderInterfaceConfig(TIM2, TIM_EncoderMode_TI1, TIM_ICPolarity_Rising, TIM_ICPolarity_Rising);
 
+    TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+    nvicEnableVector(TIM2_IRQn, CORTEX_PRIORITY_MASK(12));
+
+    TIM_Cmd(TIM2, ENABLE);
+
     // Y
     TIM3_CFG.TIM_Prescaler = 0;
     TIM3_CFG.TIM_Period = UINT16_MAX;
@@ -255,23 +318,46 @@ void mds_init(void)
     TIM_TimeBaseInit(TIM3, &TIM3_CFG);
     TIM_EncoderInterfaceConfig(TIM3, TIM_EncoderMode_TI12, TIM_ICPolarity_Rising, TIM_ICPolarity_Rising);
 
-    // Set up overflow interrupts
     TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
-    TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
-    nvicEnableVector(TIM2_IRQn, CORTEX_PRIORITY_MASK(12));
     nvicEnableVector(TIM3_IRQn, CORTEX_PRIORITY_MASK(12));
 
-    // Configure pins
-    palSetPadMode(TIM2_CH1_PORT, TIM2_CH1_PIN, PAL_MODE_ALTERNATE(1));
-    palSetPadMode(TIM2_CH2_PORT, TIM2_CH2_PIN, PAL_MODE_ALTERNATE(1));
-    palSetPadMode(TIM3_CH1_PORT, TIM3_CH1_PIN, PAL_MODE_ALTERNATE(2));
-    palSetPadMode(TIM3_CH2_PORT, TIM3_CH2_PIN, PAL_MODE_ALTERNATE(2));
-    
-    // Enable counters
-    TIM_Cmd(TIM2, ENABLE);
     TIM_Cmd(TIM3, ENABLE);
 
     // Enable PWM
+    pwm_config.frequency                            = 500000;
+    pwm_config.period                               = 2000;
+    pwm_config.callback                             = NULL;
+    pwm_config.cr2                                  = 0x00000000;
+    pwm_config.dier                                 = 0x00000000;
+
+    pwm_config.channels[DRIVE_X_CHANNEL].mode       = PWM_OUTPUT_ACTIVE_LOW;
+    pwm_config.channels[DRIVE_X_CHANNEL].callback   = NULL;
+    pwm_config.channels[DRIVE_Y_CHANNEL].mode       = PWM_OUTPUT_ACTIVE_LOW;
+    pwm_config.channels[DRIVE_Y_CHANNEL].callback   = NULL;
+
+    pwmStart(&PWMD1, &pwm_config);
+    pwmEnableChannel(&PWMD1, DRIVE_X_CHANNEL, 0); // Start both with 0% duty cycle
+    pwmEnableChannel(&PWMD1, DRIVE_Y_CHANNEL, 0);
+    
+    // Configure counter pins
+    palSetPadMode(ENC_A_X_PORT, ENC_A_X_PIN, PAL_MODE_ALTERNATE(ENC_A_X_AF));
+    palSetPadMode(ENC_B_X_PORT, ENC_B_X_PIN, PAL_MODE_ALTERNATE(ENC_B_X_AF));
+    palSetPadMode(ENC_A_Y_PORT, ENC_A_Y_PIN, PAL_MODE_ALTERNATE(ENC_A_Y_AF));
+    palSetPadMode(ENC_B_Y_PORT, ENC_B_Y_PIN, PAL_MODE_ALTERNATE(ENC_B_Y_AF));
+
+    // Configure PWM pins
+    palSetPadMode(DRIVE_X_PORT, DRIVE_X_PIN, PAL_MODE_ALTERNATE(DRIVE_X_AF));
+    palSetPadMode(DRIVE_Y_PORT, DRIVE_Y_PIN, PAL_MODE_ALTERNATE(DRIVE_Y_AF));
+
+    // Configure direction and enable pins
+    palSetPadMode(EN_X_PORT, EN_X_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+    palSetPadMode(EN_Y_PORT, EN_Y_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+    palSetPadMode(DIR_X_PORT, DIR_X_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+    palSetPadMode(DIR_X_PORT, DIR_X_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+    palClearPad(EN_X_PORT, EN_X_PIN);
+    palClearPad(EN_Y_PORT, EN_Y_PIN);
+    palClearPad(DIR_X_PORT, DIR_X_PIN);
+    palClearPad(DIR_Y_PORT, DIR_Y_PIN);
     
     // Set initial mode
     mds_info.mode = MDS_MODE_OFF;
@@ -533,15 +619,14 @@ static msg_t mds_update_thread_f(void * context)
         // Figure out the next time to wake up
         next_time += MS2ST(MDS_LOOP_TIME_MS);
 
+        PRINT("update\r\n");
+
         // Wait till overflows are dealt with
         while((TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET) || (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET));
 
         // Get latest location
         mds_info.count_x = TIM2->CNT;
         mds_info.count_y = TIM3->CNT;
-        
-        chprintf((BaseSequentialStream*) &(SD1), "x:%u\txov:%d\r\n", mds_info.count_x, mds_info.overflow_x);
-        chprintf((BaseSequentialStream*) &(SD1), "y:%u\tyov:%d\r\n", mds_info.count_y, mds_info.overflow_y);
 
         switch (mds_info.mode) {
             case MDS_MODE_ON:
@@ -613,6 +698,11 @@ static msg_t mds_update_thread_f(void * context)
                 break;
         }
 
+        if (chTimeNow() > next_time) {
+            PRINT("Uh oh\r\n");
+            next_time += MDS_LOOP_TIME_MS;
+        }
+
         // Sleep until next time
         chThdSleepUntil(next_time);
     }
@@ -643,12 +733,74 @@ static inline float mds_counts_to_mm_y(uint32_t counts, int32_t overflow)
 
 static inline void mds_set_output_x(float volts)
 {
-    (void) volts;
+    // If we're close to zero, just turn off the channel
+    if (-0.1 <= volts && volts <= 0.1) {
+        // Turn off enable
+        palClearPad(EN_X_PORT, EN_X_PIN);
+
+        // Turn off channel
+        pwmEnableChannel(&PWMD1, DRIVE_X_CHANNEL, 0);
+    }
+    else {
+        // Check direction
+        if (volts < 0.0) {
+            // Backwards
+            palSetPad(DIR_X_PORT, DIR_X_PIN);
+            
+            // Invert volts
+            volts = -volts;
+        }
+        else {
+            // Forwards
+            palClearPad(DIR_X_PORT, DIR_X_PIN);
+        }
+
+        // Apply saturation
+        if (volts > mds_info.sat_x) volts = mds_info.sat_x;
+
+        // Calculate duty cycle percentage (in 100ths of percent)
+        uint32_t percentage = (uint32_t) (volts * 10000.0 / 24.0);
+        pwmEnableChannel(&PWMD1, DRIVE_X_CHANNEL, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, percentage));
+
+        // Enable channel
+        palSetPad(EN_X_PORT, EN_X_PIN);
+    }
 }
 
 static inline void mds_set_output_y(float volts)
 {
-    (void) volts;
+    // If we're close to zero, just turn off the channel
+    if (-0.1 <= volts && volts <= 0.1) {
+        // Turn off enable
+        palClearPad(EN_Y_PORT, EN_Y_PIN);
+
+        // Turn off channel
+        pwmEnableChannel(&PWMD1, DRIVE_Y_CHANNEL, 0);
+    }
+    else {
+        // Check direction
+        if (volts < 0.0) {
+            // Backwards
+            palSetPad(DIR_Y_PORT, DIR_Y_PIN);
+            
+            // Invert volts
+            volts = -volts;
+        }
+        else {
+            // Forwards
+            palClearPad(DIR_Y_PORT, DIR_Y_PIN);
+        }
+
+        // Apply saturation
+        if (volts > mds_info.sat_y) volts = mds_info.sat_y;
+
+        // Calculate duty cycle percentage (in 100ths of percent)
+        uint32_t percentage = (uint32_t) (volts * 10000.0 / 24.0);
+        pwmEnableChannel(&PWMD1, DRIVE_Y_CHANNEL, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, percentage));
+
+        // Enable channel
+        palSetPad(EN_Y_PORT, EN_Y_PIN);
+    }
 }
 
 static inline uint8_t mds_is_greater_count(uint32_t count_1, int32_t overflow_1, uint32_t count_2, int32_t overflow_2)

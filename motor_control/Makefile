@@ -13,7 +13,7 @@ endif
 
 # C specific options here (added to USE_OPT).
 ifeq ($(USE_COPT),)
-  USE_COPT = -DCHPRINTF_USE_FLOAT=TRUE
+  USE_COPT = -DCHPRINTF_USE_FLOAT=TRUE -DCORTEX_USE_FPU=TRUE
 endif
 
 # C++ specific options here (added to USE_OPT).
