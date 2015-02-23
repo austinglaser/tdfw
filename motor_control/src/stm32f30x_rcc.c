@@ -236,7 +236,7 @@ void RCC_DeInit(void)
 void RCC_HSEConfig(uint8_t RCC_HSE)
 {
   /* Check the parameters */
-  assert_param(IS_RCC_HSE(RCC_HSE));
+  //assert_param(IS_RCC_HSE(RCC_HSE));
 
   /* Reset HSEON and HSEBYP bits before configuring the HSE ------------------*/
   *(__IO uint8_t *) CR_BYTE2_ADDRESS = RCC_HSE_OFF;
@@ -297,7 +297,7 @@ void RCC_AdjustHSICalibrationValue(uint8_t HSICalibrationValue)
   uint32_t tmpreg = 0;
   
   /* Check the parameters */
-  assert_param(IS_RCC_HSI_CALIBRATION_VALUE(HSICalibrationValue));
+  //assert_param(IS_RCC_HSI_CALIBRATION_VALUE(HSICalibrationValue));
   
   tmpreg = RCC->CR;
   
@@ -329,7 +329,7 @@ void RCC_AdjustHSICalibrationValue(uint8_t HSICalibrationValue)
 void RCC_HSICmd(FunctionalState NewState)
 {
   /* Check the parameters */
-  assert_param(IS_FUNCTIONAL_STATE(NewState));
+  //assert_param(IS_FUNCTIONAL_STATE(NewState));
   
   *(__IO uint32_t *) CR_HSION_BB = (uint32_t)NewState;
 }
@@ -354,7 +354,7 @@ void RCC_HSICmd(FunctionalState NewState)
 void RCC_LSEConfig(uint32_t RCC_LSE)
 {
   /* Check the parameters */
-  assert_param(IS_RCC_LSE(RCC_LSE));
+  //assert_param(IS_RCC_LSE(RCC_LSE));
 
   /* Reset LSEON and LSEBYP bits before configuring the LSE ------------------*/
   /* Reset LSEON bit */
@@ -380,7 +380,7 @@ void RCC_LSEConfig(uint32_t RCC_LSE)
 void RCC_LSEDriveConfig(uint32_t RCC_LSEDrive)
 {
   /* Check the parameters */
-  assert_param(IS_RCC_LSE_DRIVE(RCC_LSEDrive));
+  //assert_param(IS_RCC_LSE_DRIVE(RCC_LSEDrive));
   
   /* Clear LSEDRV[1:0] bits */
   RCC->BDCR &= ~(RCC_BDCR_LSEDRV);
@@ -404,7 +404,7 @@ void RCC_LSEDriveConfig(uint32_t RCC_LSEDrive)
 void RCC_LSICmd(FunctionalState NewState)
 {
   /* Check the parameters */
-  assert_param(IS_FUNCTIONAL_STATE(NewState));
+  //assert_param(IS_FUNCTIONAL_STATE(NewState));
   
   *(__IO uint32_t *) CSR_LSION_BB = (uint32_t)NewState;
 }
@@ -427,8 +427,8 @@ void RCC_LSICmd(FunctionalState NewState)
 void RCC_PLLConfig(uint32_t RCC_PLLSource, uint32_t RCC_PLLMul)
 {
   /* Check the parameters */
-  assert_param(IS_RCC_PLL_SOURCE(RCC_PLLSource));
-  assert_param(IS_RCC_PLL_MUL(RCC_PLLMul));
+  //assert_param(IS_RCC_PLL_SOURCE(RCC_PLLSource));
+  //assert_param(IS_RCC_PLL_MUL(RCC_PLLMul));
   
   /* Clear PLL Source [16] and Multiplier [21:18] bits */
   RCC->CFGR &= ~(RCC_CFGR_PLLMULL | RCC_CFGR_PLLSRC);
@@ -451,7 +451,7 @@ void RCC_PLLConfig(uint32_t RCC_PLLSource, uint32_t RCC_PLLMul)
 void RCC_PLLCmd(FunctionalState NewState)
 {
   /* Check the parameters */
-  assert_param(IS_FUNCTIONAL_STATE(NewState));
+  //assert_param(IS_FUNCTIONAL_STATE(NewState));
 
   *(__IO uint32_t *) CR_PLLON_BB = (uint32_t)NewState;
 }
@@ -468,7 +468,7 @@ void RCC_PREDIV1Config(uint32_t RCC_PREDIV1_Div)
   uint32_t tmpreg = 0;
   
   /* Check the parameters */
-  assert_param(IS_RCC_PREDIV1(RCC_PREDIV1_Div));
+  //assert_param(IS_RCC_PREDIV1(RCC_PREDIV1_Div));
 
   tmpreg = RCC->CFGR2;
   /* Clear PREDIV1[3:0] bits */
@@ -495,7 +495,7 @@ void RCC_PREDIV1Config(uint32_t RCC_PREDIV1_Div)
 void RCC_ClockSecuritySystemCmd(FunctionalState NewState)
 {
   /* Check the parameters */
-  assert_param(IS_FUNCTIONAL_STATE(NewState));
+  //assert_param(IS_FUNCTIONAL_STATE(NewState));
   
   *(__IO uint32_t *) CR_CSSON_BB = (uint32_t)NewState;
 }
@@ -518,7 +518,7 @@ void RCC_ClockSecuritySystemCmd(FunctionalState NewState)
 void RCC_MCOConfig(uint8_t RCC_MCOSource)
 {
   /* Check the parameters */
-  assert_param(IS_RCC_MCO_SOURCE(RCC_MCOSource));
+  //assert_param(IS_RCC_MCO_SOURCE(RCC_MCOSource));
     
   /* Select MCO clock source and prescaler */
   *(__IO uint8_t *) CFGR_BYTE3_ADDRESS =  RCC_MCOSource; 
@@ -626,7 +626,7 @@ void RCC_SYSCLKConfig(uint32_t RCC_SYSCLKSource)
   uint32_t tmpreg = 0;
   
   /* Check the parameters */
-  assert_param(IS_RCC_SYSCLK_SOURCE(RCC_SYSCLKSource));
+  //assert_param(IS_RCC_SYSCLK_SOURCE(RCC_SYSCLKSource));
   
   tmpreg = RCC->CFGR;
   
@@ -679,7 +679,7 @@ void RCC_HCLKConfig(uint32_t RCC_SYSCLK)
   uint32_t tmpreg = 0;
   
   /* Check the parameters */
-  assert_param(IS_RCC_HCLK(RCC_SYSCLK));
+  //assert_param(IS_RCC_HCLK(RCC_SYSCLK));
   
   tmpreg = RCC->CFGR;
   
@@ -710,7 +710,7 @@ void RCC_PCLK1Config(uint32_t RCC_HCLK)
   uint32_t tmpreg = 0;
   
   /* Check the parameters */
-  assert_param(IS_RCC_PCLK(RCC_HCLK));
+  //assert_param(IS_RCC_PCLK(RCC_HCLK));
   
   tmpreg = RCC->CFGR;
   /* Clear PPRE1[2:0] bits */
@@ -740,7 +740,7 @@ void RCC_PCLK2Config(uint32_t RCC_HCLK)
   uint32_t tmpreg = 0;
   
   /* Check the parameters */
-  assert_param(IS_RCC_PCLK(RCC_HCLK));
+  //assert_param(IS_RCC_PCLK(RCC_HCLK));
   
   tmpreg = RCC->CFGR;
   /* Clear PPRE2[2:0] bits */
@@ -1108,7 +1108,7 @@ void RCC_ADCCLKConfig(uint32_t RCC_PLLCLK)
   uint32_t tmp = 0;
   
   /* Check the parameters */
-  assert_param(IS_RCC_ADCCLK(RCC_PLLCLK));
+  //assert_param(IS_RCC_ADCCLK(RCC_PLLCLK));
 
   tmp = (RCC_PLLCLK >> 28);
   
@@ -1141,7 +1141,7 @@ void RCC_I2CCLKConfig(uint32_t RCC_I2CCLK)
   uint32_t tmp = 0;
   
   /* Check the parameters */
-  assert_param(IS_RCC_I2CCLK(RCC_I2CCLK));
+  //assert_param(IS_RCC_I2CCLK(RCC_I2CCLK));
 
   tmp = (RCC_I2CCLK >> 28);
   
@@ -1177,7 +1177,7 @@ void RCC_TIMCLKConfig(uint32_t RCC_TIMCLK)
   uint32_t tmp = 0;
   
   /* Check the parameters */
-  assert_param(IS_RCC_TIMCLK(RCC_TIMCLK));
+  //assert_param(IS_RCC_TIMCLK(RCC_TIMCLK));
 
   tmp = (RCC_TIMCLK >> 28);
   
@@ -1211,7 +1211,7 @@ void RCC_USARTCLKConfig(uint32_t RCC_USARTCLK)
   uint32_t tmp = 0;
   
   /* Check the parameters */
-  assert_param(IS_RCC_USARTCLK(RCC_USARTCLK));
+  //assert_param(IS_RCC_USARTCLK(RCC_USARTCLK));
 
   tmp = (RCC_USARTCLK >> 28);
 
@@ -1254,7 +1254,7 @@ void RCC_USARTCLKConfig(uint32_t RCC_USARTCLK)
 void RCC_USBCLKConfig(uint32_t RCC_USBCLKSource)
 {
   /* Check the parameters */
-  assert_param(IS_RCC_USBCLK_SOURCE(RCC_USBCLKSource));
+  //assert_param(IS_RCC_USBCLK_SOURCE(RCC_USBCLKSource));
 
   *(__IO uint32_t *) CFGR_USBPRE_BB = RCC_USBCLKSource;
 }
@@ -1285,7 +1285,7 @@ void RCC_USBCLKConfig(uint32_t RCC_USBCLKSource)
 void RCC_RTCCLKConfig(uint32_t RCC_RTCCLKSource)
 {
   /* Check the parameters */
-  assert_param(IS_RCC_RTCCLK_SOURCE(RCC_RTCCLKSource));
+  //assert_param(IS_RCC_RTCCLK_SOURCE(RCC_RTCCLKSource));
   
   /* Select the RTC clock source */
   RCC->BDCR |= RCC_RTCCLKSource;
@@ -1304,7 +1304,7 @@ void RCC_RTCCLKConfig(uint32_t RCC_RTCCLKSource)
 void RCC_I2SCLKConfig(uint32_t RCC_I2SCLKSource)
 {
   /* Check the parameters */
-  assert_param(IS_RCC_I2SCLK_SOURCE(RCC_I2SCLKSource));
+  //assert_param(IS_RCC_I2SCLK_SOURCE(RCC_I2SCLKSource));
 
   *(__IO uint32_t *) CFGR_I2SSRC_BB = RCC_I2SCLKSource;
 }
@@ -1320,7 +1320,7 @@ void RCC_I2SCLKConfig(uint32_t RCC_I2SCLKSource)
 void RCC_RTCCLKCmd(FunctionalState NewState)
 {
   /* Check the parameters */
-  assert_param(IS_FUNCTIONAL_STATE(NewState));
+  //assert_param(IS_FUNCTIONAL_STATE(NewState));
   
   *(__IO uint32_t *) BDCR_RTCEN_BB = (uint32_t)NewState;
 }
@@ -1336,7 +1336,7 @@ void RCC_RTCCLKCmd(FunctionalState NewState)
 void RCC_BackupResetCmd(FunctionalState NewState)
 {
   /* Check the parameters */
-  assert_param(IS_FUNCTIONAL_STATE(NewState));
+  //assert_param(IS_FUNCTIONAL_STATE(NewState));
   
   *(__IO uint32_t *) BDCR_BDRST_BB = (uint32_t)NewState;
 }
@@ -1369,8 +1369,8 @@ void RCC_BackupResetCmd(FunctionalState NewState)
 void RCC_AHBPeriphClockCmd(uint32_t RCC_AHBPeriph, FunctionalState NewState)
 {
   /* Check the parameters */
-  assert_param(IS_RCC_AHB_PERIPH(RCC_AHBPeriph));
-  assert_param(IS_FUNCTIONAL_STATE(NewState));
+  //assert_param(IS_RCC_AHB_PERIPH(RCC_AHBPeriph));
+  //assert_param(IS_FUNCTIONAL_STATE(NewState));
   
   if (NewState != DISABLE)
   {
@@ -1404,8 +1404,8 @@ void RCC_AHBPeriphClockCmd(uint32_t RCC_AHBPeriph, FunctionalState NewState)
 void RCC_APB2PeriphClockCmd(uint32_t RCC_APB2Periph, FunctionalState NewState)
 {
   /* Check the parameters */
-  assert_param(IS_RCC_APB2_PERIPH(RCC_APB2Periph));
-  assert_param(IS_FUNCTIONAL_STATE(NewState));
+  //assert_param(IS_RCC_APB2_PERIPH(RCC_APB2Periph));
+  //assert_param(IS_FUNCTIONAL_STATE(NewState));
 
   if (NewState != DISABLE)
   {
@@ -1449,8 +1449,8 @@ void RCC_APB2PeriphClockCmd(uint32_t RCC_APB2Periph, FunctionalState NewState)
 void RCC_APB1PeriphClockCmd(uint32_t RCC_APB1Periph, FunctionalState NewState)
 {
   /* Check the parameters */
-  assert_param(IS_RCC_APB1_PERIPH(RCC_APB1Periph));
-  assert_param(IS_FUNCTIONAL_STATE(NewState));
+  //assert_param(IS_RCC_APB1_PERIPH(RCC_APB1Periph));
+  //assert_param(IS_FUNCTIONAL_STATE(NewState));
 
   if (NewState != DISABLE)
   {
@@ -1482,8 +1482,8 @@ void RCC_APB1PeriphClockCmd(uint32_t RCC_APB1Periph, FunctionalState NewState)
 void RCC_AHBPeriphResetCmd(uint32_t RCC_AHBPeriph, FunctionalState NewState)
 {
   /* Check the parameters */
-  assert_param(IS_RCC_AHB_RST_PERIPH(RCC_AHBPeriph));
-  assert_param(IS_FUNCTIONAL_STATE(NewState));
+  //assert_param(IS_RCC_AHB_RST_PERIPH(RCC_AHBPeriph));
+  //assert_param(IS_FUNCTIONAL_STATE(NewState));
 
   if (NewState != DISABLE)
   {
@@ -1514,8 +1514,8 @@ void RCC_AHBPeriphResetCmd(uint32_t RCC_AHBPeriph, FunctionalState NewState)
 void RCC_APB2PeriphResetCmd(uint32_t RCC_APB2Periph, FunctionalState NewState)
 {
   /* Check the parameters */
-  assert_param(IS_RCC_APB2_PERIPH(RCC_APB2Periph));
-  assert_param(IS_FUNCTIONAL_STATE(NewState));
+  //assert_param(IS_RCC_APB2_PERIPH(RCC_APB2Periph));
+  //assert_param(IS_FUNCTIONAL_STATE(NewState));
 
   if (NewState != DISABLE)
   {
@@ -1556,8 +1556,8 @@ void RCC_APB2PeriphResetCmd(uint32_t RCC_APB2Periph, FunctionalState NewState)
 void RCC_APB1PeriphResetCmd(uint32_t RCC_APB1Periph, FunctionalState NewState)
 {
   /* Check the parameters */
-  assert_param(IS_RCC_APB1_PERIPH(RCC_APB1Periph));
-  assert_param(IS_FUNCTIONAL_STATE(NewState));
+  //assert_param(IS_RCC_APB1_PERIPH(RCC_APB1Periph));
+  //assert_param(IS_FUNCTIONAL_STATE(NewState));
 
   if (NewState != DISABLE)
   {
@@ -1607,8 +1607,8 @@ void RCC_APB1PeriphResetCmd(uint32_t RCC_APB1Periph, FunctionalState NewState)
 void RCC_ITConfig(uint8_t RCC_IT, FunctionalState NewState)
 {
   /* Check the parameters */
-  assert_param(IS_RCC_IT(RCC_IT));
-  assert_param(IS_FUNCTIONAL_STATE(NewState));
+  //assert_param(IS_RCC_IT(RCC_IT));
+  //assert_param(IS_FUNCTIONAL_STATE(NewState));
   
   if (NewState != DISABLE)
   {
@@ -1648,7 +1648,7 @@ FlagStatus RCC_GetFlagStatus(uint8_t RCC_FLAG)
   FlagStatus bitstatus = RESET;
 
   /* Check the parameters */
-  assert_param(IS_RCC_FLAG(RCC_FLAG));
+  //assert_param(IS_RCC_FLAG(RCC_FLAG));
 
   /* Get the RCC register index */
   tmp = RCC_FLAG >> 5;
@@ -1715,7 +1715,7 @@ ITStatus RCC_GetITStatus(uint8_t RCC_IT)
   ITStatus bitstatus = RESET;
   
   /* Check the parameters */
-  assert_param(IS_RCC_GET_IT(RCC_IT));
+  //assert_param(IS_RCC_GET_IT(RCC_IT));
   
   /* Check the status of the specified RCC interrupt */
   if ((RCC->CIR & RCC_IT) != (uint32_t)RESET)
@@ -1745,7 +1745,7 @@ ITStatus RCC_GetITStatus(uint8_t RCC_IT)
 void RCC_ClearITPendingBit(uint8_t RCC_IT)
 {
   /* Check the parameters */
-  assert_param(IS_RCC_CLEAR_IT(RCC_IT));
+  //assert_param(IS_RCC_CLEAR_IT(RCC_IT));
   
   /* Perform Byte access to RCC_CIR[23:16] bits to clear the selected interrupt
      pending bits */
