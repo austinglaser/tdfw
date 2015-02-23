@@ -14,8 +14,15 @@
     limitations under the License.
 */
 
+// Standard
+#include <stdio.h>
+
+// Chibios
 #include "ch.h"
 #include "hal.h"
+#include "chprintf.h"
+
+// Project
 #include "mds.h"
 
 /*
@@ -89,5 +96,6 @@ int main(void) {
 
   while (TRUE) {
     chThdSleepMilliseconds(500);
+    chprintf((BaseSequentialStream*) &SD1, "test\r\n");
   }
 }
