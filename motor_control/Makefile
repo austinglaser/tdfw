@@ -90,6 +90,7 @@ CSRC = $(PORTSRC) \
        $(HALSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
+       $(ROOT_DIR)/src/stm32f30x_rcc.c \
        $(ROOT_DIR)/src/stm32f30x_tim.c \
        $(ROOT_DIR)/src/mds.c \
        $(ROOT_DIR)/src/main.c
