@@ -277,7 +277,7 @@ void mds_init(void)
 {
     TIM_TimeBaseInitTypeDef TIM2_CFG;
     TIM_TimeBaseInitTypeDef TIM3_CFG;
-    //PWMConfig pwm_config;
+    PWMConfig pwm_config;
 
     // Start semaphore locked
     chSemInit(&mds_lock_sem, 0);
@@ -316,7 +316,6 @@ void mds_init(void)
     TIM_Cmd(TIM3, ENABLE);
 
     // Enable PWM
-    /*
     pwm_config.frequency                            = 500000;
     pwm_config.period                               = 2000;
     pwm_config.callback                             = NULL;
@@ -328,10 +327,9 @@ void mds_init(void)
     pwm_config.channels[DRIVE_Y_CHANNEL].mode       = PWM_OUTPUT_ACTIVE_LOW;
     pwm_config.channels[DRIVE_Y_CHANNEL].callback   = NULL;
 
-    pwmStart(&PWMD1, &pwm_config);
-    pwmEnableChannel(&PWMD1, DRIVE_X_CHANNEL, 0); // Start both with 0% duty cycle
-    pwmEnableChannel(&PWMD1, DRIVE_Y_CHANNEL, 0);
-    */
+    pwmStart(&PWMD4, &pwm_config);
+    pwmEnableChannel(&PWMD4, DRIVE_X_CHANNEL, 0); // Start both with 0% duty cycle
+    pwmEnableChannel(&PWMD4, DRIVE_Y_CHANNEL, 0);
     
     // Configure counter pins
     palSetPadMode(ENC_A_X_PORT, ENC_A_X_PIN, PAL_MODE_ALTERNATE(ENC_A_X_AF));
@@ -340,10 +338,8 @@ void mds_init(void)
     palSetPadMode(ENC_B_Y_PORT, ENC_B_Y_PIN, PAL_MODE_ALTERNATE(ENC_B_Y_AF));
 
     // Configure PWM pins
-    /*
     palSetPadMode(DRIVE_X_PORT, DRIVE_X_PIN, PAL_MODE_ALTERNATE(DRIVE_X_AF));
     palSetPadMode(DRIVE_Y_PORT, DRIVE_Y_PIN, PAL_MODE_ALTERNATE(DRIVE_Y_AF));
-    */
 
     // Configure direction and enable pins
     palSetPadMode(EN_X_PORT, EN_X_PIN, PAL_MODE_OUTPUT_PUSHPULL);
@@ -511,8 +507,12 @@ mds_err_t mds_stop_calibration(void)
             mds_info.is_calibrated  = 1;
 
             // Report calibration values
-            chprintf((BaseSequentialStream*) &SD1, "x range (mm): (%f, %f)\r\n", mds_info.lower_x, mds_info.upper_x);
-            chprintf((BaseSequentialStream*) &SD1, "y range (mm): (%f, %f)\r\n", mds_info.lower_y, mds_info.upper_y);
+            chprintf((BaseSequentialStream*) &SD1, "x range (mm):      (%f, %f)\r\n", 0.0,
+                     mds_counts_to_mm_x(mds_info.cal_max_x, mds_info.cal_max_overflow_x));
+            chprintf((BaseSequentialStream*) &SD1, "y range (mm):      (%f, %f)\r\n", 0.0,
+                     mds_counts_to_mm_y(mds_info.cal_max_y, mds_info.cal_max_overflow_y));
+            chprintf((BaseSequentialStream*) &SD1, "x boundaries (mm): (%f, %f)\r\n", mds_info.lower_x, mds_info.upper_x);
+            chprintf((BaseSequentialStream*) &SD1, "y boundaries (mm): (%f, %f)\r\n", mds_info.lower_y, mds_info.upper_y);
 
             // Indicate success
             err = MDS_SUCCESS;
@@ -761,8 +761,8 @@ static msg_t mds_update_thread_f(void * context)
 static inline float mds_counts_to_mm_x(uint32_t counts, int32_t overflow)
 {
     // Apply offset and calculate real value from overflows
-    float total_counts = (float) counts + (float) mds_info.offset_x + 
-                         ((float) MDS_MAX_COUNT_VALUE_X) * (((float) overflow) + ((float) mds_info.offset_overflow_x));
+    float total_counts = (float) counts - (float) mds_info.offset_x + 
+                         ((float) MDS_MAX_COUNT_VALUE_X) * (((float) overflow) - ((float) mds_info.offset_overflow_x));
 
     // Convert counts to mm
     return total_counts/MDS_COUNTS_PER_MM_X;
@@ -771,8 +771,8 @@ static inline float mds_counts_to_mm_x(uint32_t counts, int32_t overflow)
 static inline float mds_counts_to_mm_y(uint32_t counts, int32_t overflow)
 {
     // Apply offset and calculate real value from overflows
-    float total_counts = (float) counts + (float) mds_info.offset_y + 
-                         ((float) MDS_MAX_COUNT_VALUE_Y) * (((float) overflow) + ((float) mds_info.offset_overflow_y));
+    float total_counts = (float) counts - (float) mds_info.offset_y + 
+                         ((float) MDS_MAX_COUNT_VALUE_Y) * (((float) overflow) - ((float) mds_info.offset_overflow_y));
 
     // Convert counts to mm
     return total_counts/MDS_COUNTS_PER_MM_Y;
@@ -781,7 +781,6 @@ static inline float mds_counts_to_mm_y(uint32_t counts, int32_t overflow)
 static inline void mds_set_output_x(float volts)
 {
     (void) volts;
-    /*
     PRINT("set_output_x\r\n");
 
     // If we're close to zero, just turn off the channel
@@ -790,7 +789,7 @@ static inline void mds_set_output_x(float volts)
         palClearPad(EN_X_PORT, EN_X_PIN);
 
         // Turn off channel
-        pwmEnableChannel(&PWMD1, DRIVE_X_CHANNEL, 0);
+        pwmEnableChannel(&PWMD4, DRIVE_X_CHANNEL, 0);
     }
     else {
         // Check direction
@@ -811,18 +810,16 @@ static inline void mds_set_output_x(float volts)
 
         // Calculate duty cycle percentage (in 100ths of percent)
         uint32_t percentage = (uint32_t) lroundf((volts * 10000.0) / 24.0);
-        pwmEnableChannel(&PWMD1, DRIVE_X_CHANNEL, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, percentage));
+        pwmEnableChannel(&PWMD4, DRIVE_X_CHANNEL, PWM_PERCENTAGE_TO_WIDTH(&PWMD4, percentage));
 
         // Enable channel
         palSetPad(EN_X_PORT, EN_X_PIN);
     }
-    */
 }
 
 static inline void mds_set_output_y(float volts)
 {
     (void) volts;
-    /*
     PRINT("set_output_y\r\n");
 
     // If we're close to zero, just turn off the channel
@@ -831,7 +828,7 @@ static inline void mds_set_output_y(float volts)
         palClearPad(EN_Y_PORT, EN_Y_PIN);
 
         // Turn off channel
-        pwmEnableChannel(&PWMD1, DRIVE_Y_CHANNEL, 0);
+        pwmEnableChannel(&PWMD4, DRIVE_Y_CHANNEL, 0);
     }
     else {
         // Check direction
@@ -852,12 +849,11 @@ static inline void mds_set_output_y(float volts)
 
         // Calculate duty cycle percentage (in 100ths of percent)
         uint32_t percentage = (uint32_t) lroundf((volts * 10000.0) / 24.0);
-        pwmEnableChannel(&PWMD1, DRIVE_Y_CHANNEL, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, percentage));
+        pwmEnableChannel(&PWMD4, DRIVE_Y_CHANNEL, PWM_PERCENTAGE_TO_WIDTH(&PWMD4, percentage));
 
         // Enable channel
         palSetPad(EN_Y_PORT, EN_Y_PIN);
     }
-    */
 }
 
 static inline uint8_t mds_is_greater_count(uint32_t count_1, int32_t overflow_1, uint32_t count_2, int32_t overflow_2)
