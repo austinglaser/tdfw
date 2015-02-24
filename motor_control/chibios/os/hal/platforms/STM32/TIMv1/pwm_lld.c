@@ -406,10 +406,11 @@ void pwm_lld_start(PWMDriver *pwmp) {
     if (&PWMD1 == pwmp) {
       rccEnableTIM1(FALSE);
       rccResetTIM1();
-      nvicEnableVector(STM32_TIM1_UP_NUMBER,
-                       CORTEX_PRIORITY_MASK(STM32_PWM_TIM1_IRQ_PRIORITY));
-      nvicEnableVector(STM32_TIM1_CC_NUMBER,
-                       CORTEX_PRIORITY_MASK(STM32_PWM_TIM1_IRQ_PRIORITY));
+      // AHA Fix: need no ISR
+      //nvicEnableVector(STM32_TIM1_UP_NUMBER,
+      //                 CORTEX_PRIORITY_MASK(STM32_PWM_TIM1_IRQ_PRIORITY));
+      //nvicEnableVector(STM32_TIM1_CC_NUMBER,
+      //                 CORTEX_PRIORITY_MASK(STM32_PWM_TIM1_IRQ_PRIORITY));
 #if defined(STM32_TIM1CLK)
       pwmp->clock = STM32_TIM1CLK;
 #else
