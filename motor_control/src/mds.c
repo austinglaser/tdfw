@@ -76,8 +76,8 @@
 #define MDS_KI_DEFAULT          (0.01)  /**< Default integral loop constant */
 #define MDS_KD_DEFAULT          (0.01)  /**< Default differential loop constant */
 
-#define MDS_SAT_DEFAULT_X       (24.0)  /**< Default x saturation value in volts */
-#define MDS_SAT_DEFAULT_Y       (24.0)  /**< Default y saturation value in volts */
+#define MDS_SAT_DEFAULT_X       (5.0)   /**< Default x saturation value in volts */
+#define MDS_SAT_DEFAULT_Y       (5.0)   /**< Default y saturation value in volts */
 
 #define MDS_SAFETY_ZONE_MM_X    (100.0) 
 #define MDS_SAFETY_ZONE_MM_Y    (50.0)
@@ -168,8 +168,8 @@ static mds_info_t mds_info = {              /**< MDS settings */
 
     .count_x            = 0,
     .count_y            = 0,
-    .overflow_x         = -1,       // Monkey patch to make first encoder interrupt set it to zero
-    .overflow_y         = -1,       // Monkey patch to make first encoder interrupt set it to zero
+    .overflow_x         = 0,
+    .overflow_y         = 0,
 
     .kp_x               = MDS_KP_DEFAULT,
     .ki_x               = MDS_KI_DEFAULT,
@@ -267,7 +267,7 @@ static inline void mds_set_output_y(float volts);
  * @param[in] count_2:      The number of counts for the second pair
  * @param[in] overflow_2:   The number of over- (or under-) flows for the second pair
  *
- * @return:                 True of 1 > 2, false otherwise
+ * @return:                 True if 1 > 2, false otherwise
  */
 static inline uint8_t mds_is_greater_count(uint32_t count_1, int32_t overflow_1, uint32_t count_2, int32_t overflow_2);
 
@@ -296,7 +296,8 @@ void mds_init(void)
     TIM_TimeBaseInit(TIM2, &TIM2_CFG);
     TIM_EncoderInterfaceConfig(TIM2, TIM_EncoderMode_TI1, TIM_ICPolarity_Rising, TIM_ICPolarity_Rising);
 
-    TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+    TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
+    TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
     nvicEnableVector(TIM2_IRQn, CORTEX_PRIORITY_MASK(12));
 
     TIM_Cmd(TIM2, ENABLE);
@@ -310,7 +311,8 @@ void mds_init(void)
     TIM_TimeBaseInit(TIM3, &TIM3_CFG);
     TIM_EncoderInterfaceConfig(TIM3, TIM_EncoderMode_TI12, TIM_ICPolarity_Rising, TIM_ICPolarity_Rising);
 
-    TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
+    TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+    TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
     nvicEnableVector(TIM3_IRQn, CORTEX_PRIORITY_MASK(12));
 
     TIM_Cmd(TIM3, ENABLE);
@@ -327,9 +329,9 @@ void mds_init(void)
     pwm_config.channels[DRIVE_Y_CHANNEL].mode       = PWM_OUTPUT_ACTIVE_LOW;
     pwm_config.channels[DRIVE_Y_CHANNEL].callback   = NULL;
 
-    pwmStart(&PWMD4, &pwm_config);
-    pwmEnableChannel(&PWMD4, DRIVE_X_CHANNEL, 0); // Start both with 0% duty cycle
-    pwmEnableChannel(&PWMD4, DRIVE_Y_CHANNEL, 0);
+    pwmStart(&PWMD1, &pwm_config);
+    pwmEnableChannel(&PWMD1, DRIVE_X_CHANNEL, 0); // Start both with 0% duty cycle
+    pwmEnableChannel(&PWMD1, DRIVE_Y_CHANNEL, 0);
     
     // Configure counter pins
     palSetPadMode(ENC_A_X_PORT, ENC_A_X_PIN, PAL_MODE_ALTERNATE(ENC_A_X_AF));
@@ -781,7 +783,6 @@ static inline float mds_counts_to_mm_y(uint32_t counts, int32_t overflow)
 static inline void mds_set_output_x(float volts)
 {
     (void) volts;
-    PRINT("set_output_x\r\n");
 
     // If we're close to zero, just turn off the channel
     if (-0.1 <= volts && volts <= 0.1) {
@@ -789,7 +790,7 @@ static inline void mds_set_output_x(float volts)
         palClearPad(EN_X_PORT, EN_X_PIN);
 
         // Turn off channel
-        pwmEnableChannel(&PWMD4, DRIVE_X_CHANNEL, 0);
+        pwmEnableChannel(&PWMD1, DRIVE_X_CHANNEL, 0);
     }
     else {
         // Check direction
@@ -810,7 +811,7 @@ static inline void mds_set_output_x(float volts)
 
         // Calculate duty cycle percentage (in 100ths of percent)
         uint32_t percentage = (uint32_t) lroundf((volts * 10000.0) / 24.0);
-        pwmEnableChannel(&PWMD4, DRIVE_X_CHANNEL, PWM_PERCENTAGE_TO_WIDTH(&PWMD4, percentage));
+        pwmEnableChannel(&PWMD1, DRIVE_X_CHANNEL, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, percentage));
 
         // Enable channel
         palSetPad(EN_X_PORT, EN_X_PIN);
@@ -820,7 +821,6 @@ static inline void mds_set_output_x(float volts)
 static inline void mds_set_output_y(float volts)
 {
     (void) volts;
-    PRINT("set_output_y\r\n");
 
     // If we're close to zero, just turn off the channel
     if (-0.1 <= volts && volts <= 0.1) {
@@ -828,7 +828,7 @@ static inline void mds_set_output_y(float volts)
         palClearPad(EN_Y_PORT, EN_Y_PIN);
 
         // Turn off channel
-        pwmEnableChannel(&PWMD4, DRIVE_Y_CHANNEL, 0);
+        pwmEnableChannel(&PWMD1, DRIVE_Y_CHANNEL, 0);
     }
     else {
         // Check direction
@@ -849,7 +849,7 @@ static inline void mds_set_output_y(float volts)
 
         // Calculate duty cycle percentage (in 100ths of percent)
         uint32_t percentage = (uint32_t) lroundf((volts * 10000.0) / 24.0);
-        pwmEnableChannel(&PWMD4, DRIVE_Y_CHANNEL, PWM_PERCENTAGE_TO_WIDTH(&PWMD4, percentage));
+        pwmEnableChannel(&PWMD1, DRIVE_Y_CHANNEL, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, percentage));
 
         // Enable channel
         palSetPad(EN_Y_PORT, EN_Y_PIN);
