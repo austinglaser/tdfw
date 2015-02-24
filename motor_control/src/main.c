@@ -47,37 +47,52 @@ void UsageFaultVector(void)
 /*
  * Application entry point.
  */
-int main(void) {
+int main(void)
+{
+    uint8_t c;
 
-  /*
-   * System initializations.
-   * - HAL initialization, this also initializes the configured device drivers
-   *   and performs the board-specific initializations.
-   * - Kernel initialization, the main() function becomes a thread and the
-   *   RTOS is active.
-   */
-  halInit();
-  chSysInit();
+    /*
+     * System initializations.
+     * - HAL initialization, this also initializes the configured device drivers
+     *   and performs the board-specific initializations.
+     * - Kernel initialization, the main() function becomes a thread and the
+     *   RTOS is active.
+     */
+    halInit();
+    chSysInit();
 
-  /*
-   * Activates the serial driver 1 using the driver default configuration.
-   * PA9(TX) and PA10(RX) are routed to USART1.
-   */
-  sdStart(&SD1, NULL);
-  palSetPadMode(GPIOA, 9, PAL_MODE_ALTERNATE(7));
-  palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(7));
+    /*
+     * Activates the serial driver 1 using the driver default configuration.
+     * PA9(TX) and PA10(RX) are routed to USART1.
+     */
+    sdStart(&SD1, NULL);
+    palSetPadMode(GPIOA, 9, PAL_MODE_ALTERNATE(7));
+    palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(7));
 
-  // Init mds
-  mds_init();
+    // Init mds
+    mds_init();
 
-  chprintf((BaseSequentialStream*) &SD1, "calibrating...\r\n");
-  mds_start_calibration();
-  chThdSleepMilliseconds(10000);
+    while (TRUE) {
+        // Get and echo
+        c = sdGet(&SD1);
 
-  mds_stop_calibration();
-  chprintf((BaseSequentialStream*) &SD1, "done calibrating...\r\n");
+        // Interpret
+        switch(c) {
+            case 'c':
+            case 'C':
+                chprintf((BaseSequentialStream*) &SD1, "calibrating...\r\n");
+                mds_start_calibration();
+                break;
 
-  while (TRUE) {
-    chThdSleepMilliseconds(500);
-  }
+            case 's':
+            case 'S':
+                mds_stop_calibration();
+                chprintf((BaseSequentialStream*) &SD1, "done calibrating...\r\n");
+                break;
+
+            default:
+                // do nothing
+                break;
+        }
+    }
 }
