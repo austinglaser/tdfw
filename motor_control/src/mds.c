@@ -72,16 +72,18 @@
 
 #define MDS_LOOP_TIME_MS        (10)
 
-#define MDS_KP_DEFAULT          (0.01)      /**< Default proportional loop constant */
-#define MDS_KI_DEFAULT          (0.000005)  /**< Default integral loop constant */
-#define MDS_KD_DEFAULT          (0.0025)    /**< Default differential loop constant */
+#define MDS_KP_DEFAULT          (0.02)      /**< Default proportional loop constant */
+#define MDS_KI_DEFAULT          (0.00001)   /**< Default integral loop constant */
+#define MDS_KD_DEFAULT          (0.003)     /**< Default differential loop constant */
 
-#define MDS_SAT_DEFAULT_X       (5.0)       /**< Default x saturation value in volts */
-#define MDS_SAT_DEFAULT_Y       (5.0)       /**< Default y saturation value in volts */
+#define MDS_SAT_DEFAULT_X       (7.0)       /**< Default x saturation value in volts */
+#define MDS_SAT_DEFAULT_Y       (7.0)       /**< Default y saturation value in volts */
 
-#define MDS_OFF_THRESH          (0.5)
+#define MDS_VOLT_THRESH         (0.1)
+#define MDS_ERR_THRESH_X        (10.0)
+#define MDS_ERR_THRESH_Y        (10.0)
 
-#define MDS_SAFETY_ZONE_MM_X    (100.0) 
+#define MDS_SAFETY_ZONE_MM_X    (200.0) 
 #define MDS_SAFETY_ZONE_MM_Y    (50.0)
 
 #define MDS_MM_PER_REV          (78.2)
@@ -685,29 +687,41 @@ static msg_t mds_update_thread_f(void * context)
                 location_x = mds_counts_to_mm_x(mds_info.count_x, mds_info.overflow_x);
                 location_y = mds_counts_to_mm_y(mds_info.count_y, mds_info.overflow_y);
 
-                // Calculate error
+                // Calculate errors
                 error_x = mds_info.setpoint_x - location_x;
                 error_y = mds_info.setpoint_y - location_y;
 
-                // Update integral
-                mds_info.integral_x += error_x * MDS_LOOP_TIME_MS;
-                mds_info.integral_y += error_y * MDS_LOOP_TIME_MS;
+                if (fabs(error_x) > MDS_ERR_THRESH_X) {
+                    // Calculate x values
+                    mds_info.integral_x += error_x * MDS_LOOP_TIME_MS;
+                    differential_x = (error_x - mds_info.last_error_x) / MDS_LOOP_TIME_MS;
+                    mds_info.last_error_x = error_x;
 
-                // Calculate differential
-                differential_x = (error_x - mds_info.last_error_x) / MDS_LOOP_TIME_MS;
-                differential_y = (error_y - mds_info.last_error_y) / MDS_LOOP_TIME_MS;
-                mds_info.last_error_x = error_x;
-                mds_info.last_error_y = error_y;
+                    // Calculate x command
+                    command_x = mds_info.kp_x * error_x             +
+                                mds_info.ki_x * mds_info.integral_x + 
+                                mds_info.kd_x * differential_x;
+                }
+                else {
+                    command_x = 0.0;
+                }
 
-                // Calculate command
-                command_x = mds_info.kp_x * error_x             +
-                            mds_info.ki_x * mds_info.integral_x + 
-                            mds_info.kd_x * differential_x;
-                command_y = mds_info.kp_y * error_y             +
-                            mds_info.ki_y * mds_info.integral_y + 
-                            mds_info.kd_y * differential_y;
+                if (fabs(error_y) > MDS_ERR_THRESH_Y) {
+                    // Calculate y values
+                    mds_info.integral_y += error_y * MDS_LOOP_TIME_MS;
+                    differential_y = (error_y - mds_info.last_error_y) / MDS_LOOP_TIME_MS;
+                    mds_info.last_error_y = error_y;
 
-                // Set command
+                    // Calculate y command
+                    command_y = mds_info.kp_y * error_y             +
+                                mds_info.ki_y * mds_info.integral_y + 
+                                mds_info.kd_y * differential_y;
+                }
+                else {
+                    command_y = 0.0;
+                }
+
+                // Set command if above threshold
                 mds_set_output_x(command_x);
                 mds_set_output_y(command_y);
                 break;
@@ -785,7 +799,7 @@ static inline float mds_counts_to_mm_y(uint32_t counts, int32_t overflow)
 static inline void mds_set_output_x(float volts)
 {
     // If we're close to zero, just turn off the channel
-    if (-MDS_OFF_THRESH <= volts && volts <= MDS_OFF_THRESH) {
+    if (-MDS_VOLT_THRESH <= volts && volts <= MDS_VOLT_THRESH) {
         // Turn off enable
         palClearPad(EN_X_PORT, EN_X_PIN);
 
@@ -810,7 +824,7 @@ static inline void mds_set_output_x(float volts)
         if (volts > mds_info.sat_x) volts = mds_info.sat_x;
 
         // Calculate duty cycle percentage (in 100ths of percent)
-        uint32_t percentage = (uint32_t) lroundf((volts * 10000.0) / 24.0);
+        uint32_t percentage = (uint32_t) lroundf((volts * 10000.0) / 20.0);
         pwmEnableChannel(&PWMD1, DRIVE_X_CHANNEL, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, percentage));
 
         // Enable channel
@@ -824,7 +838,7 @@ static inline void mds_set_output_y(float volts)
 
     /*
     // If we're close to zero, just turn off the channel
-    if (-MDS_OFF_THRESH <= volts && volts <= MDS_OFF_THRESH) {
+    if (-MDS_VOLT_THRESH <= volts && volts <= MDS_VOLT_THRESH) {
         // Turn off enable
         palClearPad(EN_Y_PORT, EN_Y_PIN);
 
@@ -849,7 +863,7 @@ static inline void mds_set_output_y(float volts)
         if (volts > mds_info.sat_y) volts = mds_info.sat_y;
 
         // Calculate duty cycle percentage (in 100ths of percent)
-        uint32_t percentage = (uint32_t) lroundf((volts * 10000.0) / 24.0);
+        uint32_t percentage = (uint32_t) lroundf((volts * 10000.0) / 20.0);
         pwmEnableChannel(&PWMD1, DRIVE_Y_CHANNEL, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, percentage));
 
         // Enable channel
