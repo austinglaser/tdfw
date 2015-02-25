@@ -15,7 +15,7 @@
 */
 
 // Standard
-#include <stdio.h>
+#include <math.h>
 
 // Chibios
 #include "ch.h"
@@ -24,6 +24,9 @@
 
 // Project
 #include "mds.h"
+
+static WORKING_AREA(drive_thread_wa, 256);
+static msg_t drive_thread_f(void * context);
 
 void HardFaultVector(void)
 {
@@ -44,12 +47,19 @@ void UsageFaultVector(void)
     while(1);
 }
 
+static inline float string_to_float(uint8_t * buf);
+
 /*
  * Application entry point.
  */
 int main(void)
 {
     uint8_t c;
+    uint8_t buf[128];
+    uint32_t i;
+    float kp = 0.0;
+    float ki = 0.0;
+    float kd = 0.0;
 
     /*
      * System initializations.
@@ -72,6 +82,10 @@ int main(void)
     // Init mds
     mds_init();
 
+    chThdCreateStatic(drive_thread_wa, sizeof(drive_thread_wa),
+                      NORMALPRIO,
+                      drive_thread_f, NULL);
+
     while (TRUE) {
         // Get and echo
         c = sdGet(&SD1);
@@ -79,15 +93,88 @@ int main(void)
         // Interpret
         switch(c) {
             case 'c':
-            case 'C':
-                chprintf((BaseSequentialStream*) &SD1, "calibrating...\r\n");
                 mds_start_calibration();
+                chprintf((BaseSequentialStream*) &SD1, "calibrating...\r\n");
                 break;
 
             case 's':
-            case 'S':
                 mds_stop_calibration();
                 chprintf((BaseSequentialStream*) &SD1, "done calibrating...\r\n");
+                break;
+
+            case 'g':
+                mds_start();
+                chprintf((BaseSequentialStream*) &SD1, "starting...\r\n");
+                break;
+
+            case 'o':
+                mds_stop();
+                chprintf((BaseSequentialStream*) &SD1, "stopping...\r\n");
+                break;
+
+            case 'p':
+                chprintf((BaseSequentialStream*) &SD1, "stopping\r\n");
+                mds_stop();
+                for (i = 0; i < 128; i++) {
+                    buf[i] = sdGet(&SD1);
+                    if (buf[i] == '\r' || buf[i] == '\n') {
+                        buf[i] = '\0';
+                        sdPut(&SD1, '\r');
+                        sdPut(&SD1, '\n');
+                        break;
+                    }
+                    else {
+                        sdPut(&SD1, buf[i]);
+                    }
+                }
+
+                kp = string_to_float(buf);
+                chprintf((BaseSequentialStream*) &SD1, "updating kp=%f\r\n",kp);
+                mds_set_pid_x(kp, ki, kd, 5.0, 0);
+                break;
+
+            case 'i':
+                chprintf((BaseSequentialStream*) &SD1, "stopping\r\n");
+                mds_stop();
+
+                for (i = 0; i < 128; i++) {
+                    buf[i] = sdGet(&SD1);
+                    if (buf[i] == '\r' || buf[i] == '\n') {
+                        buf[i] = '\0';
+                        sdPut(&SD1, '\r');
+                        sdPut(&SD1, '\n');
+                        break;
+                    }
+                    else {
+                        sdPut(&SD1, buf[i]);
+                    }
+                }
+
+                ki = string_to_float(buf);
+                chprintf((BaseSequentialStream*) &SD1, "updating ki=%f\r\n",ki);
+                mds_set_pid_x(kp, ki, kd, 5.0, 0);
+                break;
+
+            case 'd':
+                chprintf((BaseSequentialStream*) &SD1, "stopping\r\n");
+                mds_stop();
+                for (i = 0; i < 128; i++) {
+                    buf[i] = sdGet(&SD1);
+                    if (buf[i] == '\r' || buf[i] == '\n') {
+                        buf[i] = '\0';
+                        sdPut(&SD1, '\r');
+                        sdPut(&SD1, '\n');
+                        break;
+                    }
+                    else {
+                        sdPut(&SD1, buf[i]);
+                    }
+                }
+
+                kd = string_to_float(buf);
+                chprintf((BaseSequentialStream*) &SD1, "updating kd=%f\r\n",kd);
+                mds_set_pid_x(kp, ki, kd, 5.0, 0);
+                
                 break;
 
             default:
@@ -95,4 +182,46 @@ int main(void)
                 break;
         }
     }
+}
+
+static msg_t drive_thread_f(void * context)
+{
+    (void) context;
+
+    float point;
+
+    while (TRUE) {
+        for (point = 150.0; point < 300; point += 5.0) {
+            mds_set_location(point, 50.0);
+            chThdSleepMilliseconds(50);
+        }
+        for (point = 300.0; point > 300; point -= 5.0) {
+            mds_set_location(point, 50.0);
+            chThdSleepMilliseconds(50);
+        }
+    }
+
+    // Pedantic
+    return 0;
+}
+
+static inline float string_to_float(uint8_t * buf)
+{
+    float number = 0.0;
+    uint32_t digit = 1;
+    uint32_t n;
+    int32_t i;
+
+    for (i = 0; buf[i]; i++);
+    for (i--; i >= 0; i--) {
+        n = (uint32_t) (buf[i] - '0');
+        if (n > 9) return 0.0;
+        
+        number += ((float) n) * digit;
+        digit *= 10;
+    }
+
+    number /= 1000000.0;
+
+    return number;
 }

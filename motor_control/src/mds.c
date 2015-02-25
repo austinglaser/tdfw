@@ -72,12 +72,14 @@
 
 #define MDS_LOOP_TIME_MS        (10)
 
-#define MDS_KP_DEFAULT          (0.01)  /**< Default proportional loop constant */
-#define MDS_KI_DEFAULT          (0.01)  /**< Default integral loop constant */
-#define MDS_KD_DEFAULT          (0.01)  /**< Default differential loop constant */
+#define MDS_KP_DEFAULT          (0.05)  /**< Default proportional loop constant */
+#define MDS_KI_DEFAULT          (0.00)  /**< Default integral loop constant */
+#define MDS_KD_DEFAULT          (0.00)  /**< Default differential loop constant */
 
 #define MDS_SAT_DEFAULT_X       (5.0)   /**< Default x saturation value in volts */
 #define MDS_SAT_DEFAULT_Y       (5.0)   /**< Default y saturation value in volts */
+
+#define MDS_OFF_THRESH          (0.5)
 
 #define MDS_SAFETY_ZONE_MM_X    (100.0) 
 #define MDS_SAFETY_ZONE_MM_Y    (50.0)
@@ -782,10 +784,8 @@ static inline float mds_counts_to_mm_y(uint32_t counts, int32_t overflow)
 
 static inline void mds_set_output_x(float volts)
 {
-    (void) volts;
-
     // If we're close to zero, just turn off the channel
-    if (-0.1 <= volts && volts <= 0.1) {
+    if (-MDS_OFF_THRESH <= volts && volts <= MDS_OFF_THRESH) {
         // Turn off enable
         palClearPad(EN_X_PORT, EN_X_PIN);
 
@@ -822,8 +822,9 @@ static inline void mds_set_output_y(float volts)
 {
     (void) volts;
 
+    /*
     // If we're close to zero, just turn off the channel
-    if (-0.1 <= volts && volts <= 0.1) {
+    if (-MDS_OFF_THRESH <= volts && volts <= MDS_OFF_THRESH) {
         // Turn off enable
         palClearPad(EN_Y_PORT, EN_Y_PIN);
 
@@ -854,6 +855,7 @@ static inline void mds_set_output_y(float volts)
         // Enable channel
         palSetPad(EN_Y_PORT, EN_Y_PIN);
     }
+    */
 }
 
 static inline uint8_t mds_is_greater_count(uint32_t count_1, int32_t overflow_1, uint32_t count_2, int32_t overflow_2)
