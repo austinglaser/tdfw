@@ -1,16 +1,19 @@
-CXX		:= g++
-CPPFLAGS	:= -Wall -Wextra -Wno-write-strings -g
+##############################################################################
+# Build global options
+# NOTE: Can be overridden externally.
+#
 
-PC		:= pkg-config
-PCFLAGS		:= --cflags --libs
-PCPKGS		:= glib-2.0
-CPPFLAGS += $(shell $(PC) $(PCFLAGS) $(PCPKGS))
+# Determine root directory
+ROOT_DIR:=$(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 
-all: test
+# Compiler options here.
+ifeq ($(USE_OPT),)
+  USE_OPT = -O0 -ggdb -fomit-frame-pointer -falign-functions=16
+endif
 
-test: test.cpp
-	$(CXX) $(CPPFLAGS) $< -o $@
+# C specific options here (added to USE_OPT).
+ifeq ($(USE_COPT),)
+  USE_COPT = -DCHPRINTF_USE_FLOAT=TRUE -DCORTEX_USE_FPU=TRUE
+endif
 
-.PHONY: clean
-clean:
-	rm -rf *.o test
+# C++ specific options here (added to USE_OPT).

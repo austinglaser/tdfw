@@ -1,5 +1,21 @@
 # video files
 *.avi
 
-# Executable
+# Object Files
+*.o
+*.lst
+
+# Eclipse files
+.project
+.cproject
+
+# Executables
 test
+*.bin
+*.elf
+*.hex
+*.map
+
+# Directories
+build/
+.dep/
