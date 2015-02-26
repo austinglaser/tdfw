@@ -72,9 +72,9 @@
 
 #define MDS_LOOP_TIME_MS        (10)
 
-#define MDS_KP_DEFAULT          (0.02)      /**< Default proportional loop constant */
-#define MDS_KI_DEFAULT          (0.00001)   /**< Default integral loop constant */
-#define MDS_KD_DEFAULT          (0.003)     /**< Default differential loop constant */
+#define MDS_KP_DEFAULT          (0.15)      /**< Default proportional loop constant */
+#define MDS_KI_DEFAULT          (0.000005)  /**< Default integral loop constant */
+#define MDS_KD_DEFAULT          (0.0015)    /**< Default differential loop constant */
 
 #define MDS_SAT_DEFAULT_X       (7.0)       /**< Default x saturation value in volts */
 #define MDS_SAT_DEFAULT_Y       (7.0)       /**< Default y saturation value in volts */
@@ -83,7 +83,7 @@
 #define MDS_ERR_THRESH_X        (10.0)
 #define MDS_ERR_THRESH_Y        (10.0)
 
-#define MDS_SAFETY_ZONE_MM_X    (200.0) 
+#define MDS_SAFETY_ZONE_MM_X    (100.0) 
 #define MDS_SAFETY_ZONE_MM_Y    (50.0)
 
 #define MDS_MM_PER_REV          (78.2)
