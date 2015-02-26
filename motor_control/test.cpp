@@ -51,14 +51,14 @@ int main(void)
 	enc_x_val_fd    = open("/sys/class/gpio/gpio60_pi10/value",     O_RDONLY | O_NONBLOCK);
     GIOChannel* enc_x_edge  = g_io_channel_unix_new(enc_x_edge_fd);
     GIOChannel* enc_x_dir   = g_io_channel_unix_new(enc_x_dir_fd);
-    GIOChannel* enc_x_val   = g_io_channel_unix_new(enc_y_val_fd);
+    GIOChannel* enc_x_val   = g_io_channel_unix_new(enc_x_val_fd);
 
 	enc_y_edge_fd   = open("/sys/class/gpio/gpio61_pi11/edge",      O_WRONLY | O_NONBLOCK);
 	enc_y_dir_fd    = open("/sys/class/gpio/gpio61_pi11/direction", O_WRONLY | O_NONBLOCK);
 	enc_y_val_fd    = open("/sys/class/gpio/gpio61_pi11/value",     O_RDONLY | O_NONBLOCK);
     GIOChannel* enc_y_edge  = g_io_channel_unix_new(enc_y_edge_fd);
     GIOChannel* enc_y_dir   = g_io_channel_unix_new(enc_y_dir_fd);
-    GIOChannel* enc_y_val   = g_io_channel_unix_new(enc_x_val_fd);
+    GIOChannel* enc_y_val   = g_io_channel_unix_new(enc_y_val_fd);
 
     // Configure the pins
     count = str_to_buf(buf, "rising\n");
