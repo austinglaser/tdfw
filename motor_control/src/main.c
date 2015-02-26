@@ -60,6 +60,7 @@ int main(void)
     float kp = 0.0;
     float ki = 0.0;
     float kd = 0.0;
+    float sat = 5.0;
 
     /*
      * System initializations.
@@ -113,7 +114,6 @@ int main(void)
                 break;
 
             case 'p':
-                chprintf((BaseSequentialStream*) &SD1, "stopping\r\n");
                 mds_stop();
                 for (i = 0; i < 128; i++) {
                     buf[i] = sdGet(&SD1);
@@ -130,11 +130,10 @@ int main(void)
 
                 kp = string_to_float(buf);
                 chprintf((BaseSequentialStream*) &SD1, "updating kp=%f\r\n",kp);
-                mds_set_pid_x(kp, ki, kd, 5.0, 0);
+                mds_set_pid_x(kp, ki, kd, sat, 0);
                 break;
 
             case 'i':
-                chprintf((BaseSequentialStream*) &SD1, "stopping\r\n");
                 mds_stop();
 
                 for (i = 0; i < 128; i++) {
@@ -152,11 +151,10 @@ int main(void)
 
                 ki = string_to_float(buf);
                 chprintf((BaseSequentialStream*) &SD1, "updating ki=%f\r\n",ki);
-                mds_set_pid_x(kp, ki, kd, 5.0, 0);
+                mds_set_pid_x(kp, ki, kd, sat, 0);
                 break;
 
             case 'd':
-                chprintf((BaseSequentialStream*) &SD1, "stopping\r\n");
                 mds_stop();
                 for (i = 0; i < 128; i++) {
                     buf[i] = sdGet(&SD1);
@@ -173,8 +171,27 @@ int main(void)
 
                 kd = string_to_float(buf);
                 chprintf((BaseSequentialStream*) &SD1, "updating kd=%f\r\n",kd);
-                mds_set_pid_x(kp, ki, kd, 5.0, 0);
-                
+                mds_set_pid_x(kp, ki, kd, sat, 0);
+                break;
+
+            case 'a':
+                mds_stop();
+                for (i = 0; i < 128; i++) {
+                    buf[i] = sdGet(&SD1);
+                    if (buf[i] == '\r' || buf[i] == '\n') {
+                        buf[i] = '\0';
+                        sdPut(&SD1, '\r');
+                        sdPut(&SD1, '\n');
+                        break;
+                    }
+                    else {
+                        sdPut(&SD1, buf[i]);
+                    }
+                }
+
+                sat = string_to_float(buf);
+                chprintf((BaseSequentialStream*) &SD1, "updating sat=%f\r\n",sat);
+                mds_set_pid_x(kp, ki, kd, sat, 0);
                 break;
 
             default:
@@ -188,17 +205,11 @@ static msg_t drive_thread_f(void * context)
 {
     (void) context;
 
-    float point;
-
     while (TRUE) {
-        for (point = 150.0; point < 300; point += 5.0) {
-            mds_set_location(point, 50.0);
-            chThdSleepMilliseconds(50);
-        }
-        for (point = 300.0; point > 300; point -= 5.0) {
-            mds_set_location(point, 50.0);
-            chThdSleepMilliseconds(50);
-        }
+        mds_set_location(400.0, 50.0);
+        chThdSleepMilliseconds(1000);
+        mds_set_location(200.0, 50.0);
+        chThdSleepMilliseconds(1000);
     }
 
     // Pedantic
