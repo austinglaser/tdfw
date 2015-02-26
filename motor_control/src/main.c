@@ -87,6 +87,8 @@ int main(void)
                       NORMALPRIO,
                       drive_thread_f, NULL);
 
+    chprintf((BaseSequentialStream*) &SD1, "success! Please calibrate before proceeding\r\n");
+
     while (TRUE) {
         // Get and echo
         c = sdGet(&SD1);
@@ -207,9 +209,9 @@ static msg_t drive_thread_f(void * context)
 
     while (TRUE) {
         mds_set_location(400.0, 50.0);
-        chThdSleepMilliseconds(1000);
+        chThdSleepMilliseconds(10000);
         mds_set_location(200.0, 50.0);
-        chThdSleepMilliseconds(1000);
+        chThdSleepMilliseconds(10000);
     }
 
     // Pedantic
