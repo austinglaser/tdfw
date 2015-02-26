@@ -25,6 +25,9 @@ static int enc_y_edge_fd;
 static int enc_y_dir_fd;
 static int enc_y_val_fd;
 
+static volatile unsigned int player_score = 0;
+static volatile unsigned int aha_score = 0;
+
 /* --- PUBLIC FUNCTION DEFINITIONS ------------------------------------------ */
 
 int main(void)
@@ -94,8 +97,8 @@ static gboolean encoder_int_x(GIOChannel* channel, GIOCondition condition, gpoin
     g_io_channel_seek_position(channel, 0, G_SEEK_SET, 0);
     GIOStatus rc = g_io_channel_read_chars(channel, buf, buf_sz - 1, &bytes_read, &error);
 
-    cout << "X Encoder!" << endl;
-    cerr << "rc:" << rc << "  data:" << buf << endl;
+    cout << "Player scored!" << endl;
+    cout << "AHA: " << aha_score << " Player: " << player_score << endl;
 
     return true;
 }
@@ -114,8 +117,8 @@ static gboolean encoder_int_y(GIOChannel* channel, GIOCondition condition, gpoin
     g_io_channel_seek_position(channel, 0, G_SEEK_SET, 0);
     GIOStatus rc = g_io_channel_read_chars(channel, buf, buf_sz - 1, &bytes_read, &error);
 
-    cout << "Y Encoder!" << endl;
-    cerr << "rc:" << rc << "  data:" << buf << endl;
+    cout << "AHA scored!" << endl;
+    cout << "AHA: " << aha_score << " Player: " << player_score << endl;
 
     return true;
 }
