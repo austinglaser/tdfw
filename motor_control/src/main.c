@@ -209,9 +209,9 @@ static msg_t drive_thread_f(void * context)
 
     while (TRUE) {
         mds_set_location(400.0, 50.0);
-        chThdSleepMilliseconds(10000);
+        chThdSleepMilliseconds(1000);
         mds_set_location(200.0, 50.0);
-        chThdSleepMilliseconds(10000);
+        chThdSleepMilliseconds(1000);
     }
 
     // Pedantic
