@@ -196,7 +196,7 @@ static mds_info_t mds_info = {              /**< MDS settings */
 
 static WORKING_AREA(mds_update_thread_wa, 1024);    /**< Stack area for update thread */
 static Thread* mds_update_thread;                   /**< Update thread variable */
-static Semaphore mds_lock_sem;
+static Semaphore mds_lock_sem;                      /**< Semaphore for mutual exclusion */
 
 /* --- PRIVATE FUNCTION PROTOTYPES ------------------------------------------ */
 
@@ -211,7 +211,6 @@ static msg_t mds_update_thread_f(void * context);
  * @brief Convert encoder counts to mm in the x dimension
  *
  * @param[in] counts:       Current encoder counter value
- * @param[in] overflow:     How many times the timer has over- or (if negative) under-flowed
  *
  * @return:                 The converted x coordinate
  */
@@ -221,7 +220,6 @@ static inline float mds_counts_to_mm_x(int32_t counts);
  * @brief   Convert encoder counts to mm in the x dimension
  *
  * @param[in] counts:       Current encoder counter value
- * @param[in] overflow:    How many times the timer has over- or (if negative) under-flowed
  *
  * @return:                 The converted y coordinate
  */
@@ -256,11 +254,32 @@ void mds_init(void)
     // Start semaphore locked
     chSemInit(&mds_lock_sem, 0);
 
-    // Initialize clocks
+    // Configure counter pins
+    palSetPadMode(ENC_A_X_PORT, ENC_A_X_PIN, PAL_MODE_ALTERNATE(ENC_A_X_AF));
+    palSetPadMode(ENC_B_X_PORT, ENC_B_X_PIN, PAL_MODE_ALTERNATE(ENC_B_X_AF));
+    palSetPadMode(ENC_A_Y_PORT, ENC_A_Y_PIN, PAL_MODE_ALTERNATE(ENC_A_Y_AF));
+    palSetPadMode(ENC_B_Y_PORT, ENC_B_Y_PIN, PAL_MODE_ALTERNATE(ENC_B_Y_AF));
+
+    // Configure PWM pins
+    palSetPadMode(DRIVE_X_PORT, DRIVE_X_PIN, PAL_MODE_ALTERNATE(DRIVE_X_AF));
+    palSetPadMode(DRIVE_Y_PORT, DRIVE_Y_PIN, PAL_MODE_ALTERNATE(DRIVE_Y_AF));
+
+    // Configure direction and enable pins
+    palSetPadMode(EN_X_PORT, EN_X_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+    palSetPadMode(EN_Y_PORT, EN_Y_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+    palSetPadMode(DIR_X_PORT, DIR_X_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+    palSetPadMode(DIR_X_PORT, DIR_X_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+    palClearPad(EN_X_PORT, EN_X_PIN);
+    palClearPad(EN_Y_PORT, EN_Y_PIN);
+    palClearPad(DIR_X_PORT, DIR_X_PIN);
+    palClearPad(DIR_Y_PORT, DIR_Y_PIN);
+
+
+    // Initialize encoder counters
+    // Clocks
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 
-    // Initialize encoder counters
     // X
     TIM2_CFG.TIM_Prescaler = 0;
     TIM2_CFG.TIM_Period = UINT32_MAX;
@@ -298,26 +317,6 @@ void mds_init(void)
     pwmStart(&PWMD1, &pwm_config);
     pwmEnableChannel(&PWMD1, DRIVE_X_CHANNEL, 0); // Start both with 0% duty cycle
     pwmEnableChannel(&PWMD1, DRIVE_Y_CHANNEL, 0);
-    
-    // Configure counter pins
-    palSetPadMode(ENC_A_X_PORT, ENC_A_X_PIN, PAL_MODE_ALTERNATE(ENC_A_X_AF));
-    palSetPadMode(ENC_B_X_PORT, ENC_B_X_PIN, PAL_MODE_ALTERNATE(ENC_B_X_AF));
-    palSetPadMode(ENC_A_Y_PORT, ENC_A_Y_PIN, PAL_MODE_ALTERNATE(ENC_A_Y_AF));
-    palSetPadMode(ENC_B_Y_PORT, ENC_B_Y_PIN, PAL_MODE_ALTERNATE(ENC_B_Y_AF));
-
-    // Configure PWM pins
-    palSetPadMode(DRIVE_X_PORT, DRIVE_X_PIN, PAL_MODE_ALTERNATE(DRIVE_X_AF));
-    palSetPadMode(DRIVE_Y_PORT, DRIVE_Y_PIN, PAL_MODE_ALTERNATE(DRIVE_Y_AF));
-
-    // Configure direction and enable pins
-    palSetPadMode(EN_X_PORT, EN_X_PIN, PAL_MODE_OUTPUT_PUSHPULL);
-    palSetPadMode(EN_Y_PORT, EN_Y_PIN, PAL_MODE_OUTPUT_PUSHPULL);
-    palSetPadMode(DIR_X_PORT, DIR_X_PIN, PAL_MODE_OUTPUT_PUSHPULL);
-    palSetPadMode(DIR_X_PORT, DIR_X_PIN, PAL_MODE_OUTPUT_PUSHPULL);
-    palClearPad(EN_X_PORT, EN_X_PIN);
-    palClearPad(EN_Y_PORT, EN_Y_PIN);
-    palClearPad(DIR_X_PORT, DIR_X_PIN);
-    palClearPad(DIR_Y_PORT, DIR_Y_PIN);
     
     // Set initial mode
     mds_info.mode = MDS_MODE_OFF;
@@ -427,10 +426,10 @@ mds_err_t mds_start_calibration(void)
     // Check the mode
     if (mds_info.mode != MDS_MODE_CALIBRATING) {
         // Record current location
-        mds_info.cal_min_x          = mds_info.count_x;
-        mds_info.cal_max_x          = mds_info.count_x;
-        mds_info.cal_min_y          = mds_info.count_y;
-        mds_info.cal_max_y          = mds_info.count_y;
+        mds_info.cal_min_x = mds_info.count_x;
+        mds_info.cal_max_x = mds_info.count_x;
+        mds_info.cal_min_y = mds_info.count_y;
+        mds_info.cal_max_y = mds_info.count_y;
 
         // Set calibration mode
         mds_info.mode = MDS_MODE_CALIBRATING;
@@ -456,8 +455,8 @@ mds_err_t mds_stop_calibration(void)
             mds_info.mode = MDS_MODE_OFF;
 
             // Set offset
-            mds_info.offset_x           = mds_info.cal_min_x;
-            mds_info.offset_y           = mds_info.cal_min_y;
+            mds_info.offset_x = mds_info.cal_min_x;
+            mds_info.offset_y = mds_info.cal_min_y;
 
             // Calculate playfield
             mds_info.lower_x = MDS_SAFETY_ZONE_MM_X;
@@ -496,8 +495,6 @@ mds_err_t mds_start(void)
     chSemWait(&mds_lock_sem);
 
     mds_err_t err;
-    float location_x;
-    float location_y;
 
     switch (mds_info.mode) {
         case MDS_MODE_OFF:
@@ -508,10 +505,8 @@ mds_err_t mds_start(void)
                 mds_info.integral_y = 0.0;
 
                 // Calculate initial error to avoid impulse on first timestep
-                location_x = mds_counts_to_mm_x(mds_info.count_x);
-                location_y = mds_counts_to_mm_y(mds_info.count_y);
-                mds_info.last_error_x = mds_info.setpoint_x - location_x;
-                mds_info.last_error_y = mds_info.setpoint_y - location_y;
+                mds_info.last_error_x = mds_info.setpoint_x - mds_counts_to_mm_x(mds_info.count_x);
+                mds_info.last_error_y = mds_info.setpoint_y - mds_counts_to_mm_y(mds_info.count_y);
 
                 // Turn on MDS
                 mds_info.mode = MDS_MODE_ON;
@@ -564,7 +559,7 @@ mds_err_t mds_set_location(float setpoint_x, float setpoint_y)
         case MDS_MODE_ON:
             err = MDS_SUCCESS;
 
-            // Record new setpoint
+            // Check limits and record new setpoint
             if (setpoint_x > mds_info.upper_x) {
                 mds_info.setpoint_x = mds_info.upper_x;
                 err = MDS_OUT_OF_BOUNDS;
@@ -573,7 +568,9 @@ mds_err_t mds_set_location(float setpoint_x, float setpoint_y)
                 mds_info.setpoint_x = mds_info.lower_x;
                 err = MDS_OUT_OF_BOUNDS;
             }
-            else mds_info.setpoint_x = setpoint_x;
+            else {
+                mds_info.setpoint_x = setpoint_x;
+            }
 
             if (setpoint_y > mds_info.upper_y) {
                 mds_info.setpoint_y = mds_info.upper_y;
@@ -583,7 +580,9 @@ mds_err_t mds_set_location(float setpoint_x, float setpoint_y)
                 mds_info.setpoint_y = mds_info.lower_y;
                 err = MDS_OUT_OF_BOUNDS;
             }
-            else mds_info.setpoint_y = setpoint_y;
+            else {
+                mds_info.setpoint_y = setpoint_y;
+            }
 
             break;
 
@@ -642,6 +641,7 @@ static msg_t mds_update_thread_f(void * context)
                 error_x = mds_info.setpoint_x - location_x;
                 error_y = mds_info.setpoint_y - location_y;
 
+                // Only calculate PID if we're over a threshold, to avoid windup
                 if (fabs(error_x) > MDS_ERR_THRESH_X) {
                     // Calculate x values
                     mds_info.integral_x += error_x * MDS_LOOP_TIME_MS;
@@ -657,6 +657,7 @@ static msg_t mds_update_thread_f(void * context)
                     command_x = 0.0;
                 }
 
+                // Only calculate PID if we're over a threshold, to avoid windup
                 if (fabs(error_y) > MDS_ERR_THRESH_Y) {
                     // Calculate y values
                     mds_info.integral_y += error_y * MDS_LOOP_TIME_MS;
@@ -672,7 +673,7 @@ static msg_t mds_update_thread_f(void * context)
                     command_y = 0.0;
                 }
 
-                // Set command if above threshold
+                // Set command
                 mds_set_output_x(command_x);
                 mds_set_output_y(command_y);
                 break;
@@ -698,6 +699,7 @@ static msg_t mds_update_thread_f(void * context)
                 break;
         }
 
+        // Don't sleep forever!
         if (chTimeNow() >= next_time) {
             PRINT("Uh oh\r\n");
             next_time = chTimeNow() + MS2ST(MDS_LOOP_TIME_MS);
