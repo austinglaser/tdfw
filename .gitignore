@@ -9,6 +9,11 @@
 .project
 .cproject
 
+# Temp files
+*.sw?
+*.kate-sw?
+.~lock.*
+
 # Executables
 test
 *.bin
