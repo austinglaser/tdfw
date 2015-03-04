@@ -95,7 +95,8 @@
 #define MDS_MAX_COUNT_VALUE_X   UINT32_MAX
 #define MDS_MAX_COUNT_VALUE_Y   UINT16_MAX
 
-#define PRINT(string)           chprintf((BaseSequentialStream*) &SD1, (string))
+#define PRINTF(...)           chprintf((BaseSequentialStream*) &SD1, __VA_ARGS__)
+#define ST2MS(st) (((st) * 1000L) / CH_FREQUENCY)
 
 /* --- PRIVATE DATA TYPES --------------------------------------------------- */
 
@@ -425,6 +426,9 @@ mds_err_t mds_start_calibration(void)
 
     // Check the mode
     if (mds_info.mode != MDS_MODE_CALIBRATING) {
+        // Not calibrated!
+        mds_info.is_calibrated = 0;
+
         // Record current location
         mds_info.cal_min_x = mds_info.count_x;
         mds_info.cal_max_x = mds_info.count_x;
@@ -458,23 +462,31 @@ mds_err_t mds_stop_calibration(void)
             mds_info.offset_x = mds_info.cal_min_x;
             mds_info.offset_y = mds_info.cal_min_y;
 
-            // Calculate playfield
-            mds_info.lower_x = MDS_SAFETY_ZONE_MM_X;
-            mds_info.lower_y = MDS_SAFETY_ZONE_MM_Y;
-            mds_info.upper_x = mds_counts_to_mm_x(mds_info.cal_max_x) - MDS_SAFETY_ZONE_MM_X;
-            mds_info.upper_y = mds_counts_to_mm_y(mds_info.cal_max_y) - MDS_SAFETY_ZONE_MM_Y;
+            // Check that we've done a valid calibration
+            // TODO: add y logic in
+            if (mds_counts_to_mm_x(mds_info.cal_max_x) >= MDS_SAFETY_ZONE_MM_X*2)
+            {
+                // Calculate playfield
+                mds_info.lower_x = MDS_SAFETY_ZONE_MM_X;
+                mds_info.lower_y = MDS_SAFETY_ZONE_MM_Y;
+                mds_info.upper_x = mds_counts_to_mm_x(mds_info.cal_max_x) - MDS_SAFETY_ZONE_MM_X;
+                mds_info.upper_y = mds_counts_to_mm_y(mds_info.cal_max_y) - MDS_SAFETY_ZONE_MM_Y;
 
-            // Record that we're calibrated
-            mds_info.is_calibrated  = 1;
+                // Record that we're calibrated
+                mds_info.is_calibrated  = 1;
 
-            // Report calibration values
-            chprintf((BaseSequentialStream*) &SD1, "x range (mm):\t(%f, %f)\r\n", 0.0, mds_counts_to_mm_x(mds_info.cal_max_x));
-            chprintf((BaseSequentialStream*) &SD1, "y range (mm):\t(%f, %f)\r\n", 0.0, mds_counts_to_mm_y(mds_info.cal_max_y));
-            chprintf((BaseSequentialStream*) &SD1, "x boundaries (mm):\t(%f, %f)\r\n", mds_info.lower_x, mds_info.upper_x);
-            chprintf((BaseSequentialStream*) &SD1, "y boundaries (mm):\t(%f, %f)\r\n", mds_info.lower_y, mds_info.upper_y);
+                // Report calibration values
+                chprintf((BaseSequentialStream*) &SD1, "x range (mm):\t(%f, %f)\r\n", 0.0, mds_counts_to_mm_x(mds_info.cal_max_x));
+                chprintf((BaseSequentialStream*) &SD1, "y range (mm):\t(%f, %f)\r\n", 0.0, mds_counts_to_mm_y(mds_info.cal_max_y));
+                chprintf((BaseSequentialStream*) &SD1, "x boundaries (mm):\t(%f, %f)\r\n", mds_info.lower_x, mds_info.upper_x);
+                chprintf((BaseSequentialStream*) &SD1, "y boundaries (mm):\t(%f, %f)\r\n", mds_info.lower_y, mds_info.upper_y);
 
-            // Indicate success
-            err = MDS_SUCCESS;
+                // Indicate success
+                err = MDS_SUCCESS;
+            }
+            else {
+                err = MDS_FAIL;
+            }
             break;
             
         default:
@@ -495,18 +507,28 @@ mds_err_t mds_start(void)
     chSemWait(&mds_lock_sem);
 
     mds_err_t err;
+    float location_x;
+    float location_y;
 
     switch (mds_info.mode) {
         case MDS_MODE_OFF:
             // Make sure calibrated
             if (mds_info.is_calibrated) {
+                // Find location
+                location_x = mds_counts_to_mm_x(mds_info.count_x);
+                location_y = mds_counts_to_mm_y(mds_info.count_y);
+
+                // Make setpoint current location to prevent bad things
+                mds_info.setpoint_x = location_x;
+                mds_info.setpoint_y = location_y;
+
                 // Clear integral
                 mds_info.integral_x = 0.0;
                 mds_info.integral_y = 0.0;
 
                 // Calculate initial error to avoid impulse on first timestep
-                mds_info.last_error_x = mds_info.setpoint_x - mds_counts_to_mm_x(mds_info.count_x);
-                mds_info.last_error_y = mds_info.setpoint_y - mds_counts_to_mm_y(mds_info.count_y);
+                mds_info.last_error_x = mds_info.setpoint_x - location_x;
+                mds_info.last_error_y = mds_info.setpoint_y - location_y;
 
                 // Turn on MDS
                 mds_info.mode = MDS_MODE_ON;
@@ -676,6 +698,16 @@ static msg_t mds_update_thread_f(void * context)
                 // Set command
                 mds_set_output_x(command_x);
                 mds_set_output_y(command_y);
+
+                //time,x,y,set_x,set_y,command_x,command_y;
+                PRINTF("%u,%f,%f,%f,%f,%f,%f;\r\n",
+                       ST2MS(chTimeNow()),
+                       location_x,
+                       location_y,
+                       mds_info.setpoint_x,
+                       mds_info.setpoint_y,
+                       command_x,
+                       command_y);
                 break;
 
             case MDS_MODE_CALIBRATING:
@@ -701,7 +733,7 @@ static msg_t mds_update_thread_f(void * context)
 
         // Don't sleep forever!
         if (chTimeNow() >= next_time) {
-            PRINT("Uh oh\r\n");
+            PRINTF("Uh oh\r\n");
             next_time = chTimeNow() + MS2ST(MDS_LOOP_TIME_MS);
         }
 

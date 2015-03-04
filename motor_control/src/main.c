@@ -61,6 +61,7 @@ int main(void)
     float ki = 0.0;
     float kd = 0.0;
     float sat = 5.0;
+    mds_err_t err;
 
     /*
      * System initializations.
@@ -101,8 +102,9 @@ int main(void)
                 break;
 
             case 's':
-                mds_stop_calibration();
-                chprintf((BaseSequentialStream*) &SD1, "done calibrating...\r\n");
+                err = mds_stop_calibration();
+                if (err == MDS_SUCCESS) chprintf((BaseSequentialStream*) &SD1, "done calibrating...\r\n");
+                else                    chprintf((BaseSequentialStream*) &SD1, "calibration failed!\r\n");
                 break;
 
             case 'g':
