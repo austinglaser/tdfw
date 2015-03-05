@@ -1,3 +1,6 @@
 [submodule "olinuxuino"]
 	path = hardware/olinuxuino
 	url = https://github.com/OLIMEX/OLINUXINO.git
+[submodule "motor_board"]
+	path = hardware/motor_board
+	url = https://github.com/jaygreco/EagleMotorDriver
