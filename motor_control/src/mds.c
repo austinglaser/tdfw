@@ -72,12 +72,16 @@
 
 #define MDS_LOOP_TIME_MS        (10)
 
-#define MDS_KP_DEFAULT          (0.15)      /**< Default proportional loop constant */
-#define MDS_KI_DEFAULT          (0.000005)  /**< Default integral loop constant */
-#define MDS_KD_DEFAULT          (5)         /**< Default differential loop constant */
+#define MDS_KP_DEFAULT_X        (0.15)      /**< Default proportional loop constant */
+#define MDS_KI_DEFAULT_X        (0.000005)  /**< Default integral loop constant */
+#define MDS_KD_DEFAULT_X        (5)         /**< Default differential loop constant */
+
+#define MDS_KP_DEFAULT_Y        (0.05)      /**< Default proportional loop constant */
+#define MDS_KI_DEFAULT_Y        (0.0)       /**< Default integral loop constant */
+#define MDS_KD_DEFAULT_Y        (0.0)       /**< Default differential loop constant */
 
 #define MDS_SAT_DEFAULT_X       (10.0)      /**< Default x saturation value in volts */
-#define MDS_SAT_DEFAULT_Y       (10.0)      /**< Default y saturation value in volts */
+#define MDS_SAT_DEFAULT_Y       (4.0)       /**< Default y saturation value in volts */
 
 #define MDS_VOLT_THRESH         (0.1)
 #define MDS_ERR_THRESH_X        (7.5)
@@ -85,6 +89,8 @@
 
 #define MDS_SAFETY_ZONE_MM_X    (100.0) 
 #define MDS_SAFETY_ZONE_MM_Y    (50.0)
+
+#define MDS_SUPPLY_VOLTS        (20.0)
 
 #define MDS_MM_PER_REV          (78.2)
 #define MDS_COUNTS_PER_REV_X    (1024.0*2.0)
@@ -166,12 +172,12 @@ static mds_info_t mds_info = {              /**< MDS settings */
     .count_x            = 0,
     .count_y            = 0,
 
-    .kp_x               = MDS_KP_DEFAULT,
-    .ki_x               = MDS_KI_DEFAULT,
-    .kd_x               = MDS_KD_DEFAULT,
-    .kp_y               = MDS_KP_DEFAULT,
-    .ki_y               = MDS_KI_DEFAULT,
-    .kd_y               = MDS_KD_DEFAULT,
+    .kp_x               = MDS_KP_DEFAULT_X,
+    .ki_x               = MDS_KI_DEFAULT_X,
+    .kd_x               = MDS_KD_DEFAULT_X,
+    .kp_y               = MDS_KP_DEFAULT_Y,
+    .ki_y               = MDS_KI_DEFAULT_Y,
+    .kd_y               = MDS_KD_DEFAULT_Y,
 
     .sat_x              = MDS_SAT_DEFAULT_X,
     .sat_y              = MDS_SAT_DEFAULT_Y,
@@ -581,7 +587,7 @@ mds_err_t mds_set_location(float setpoint_x, float setpoint_y)
         case MDS_MODE_ON:
             err = MDS_SUCCESS;
 
-            // Check limits and record new setpoint
+            // Check x limits and record new setpoint
             if (setpoint_x > mds_info.upper_x) {
                 mds_info.setpoint_x = mds_info.upper_x;
                 err = MDS_OUT_OF_BOUNDS;
@@ -594,6 +600,7 @@ mds_err_t mds_set_location(float setpoint_x, float setpoint_y)
                 mds_info.setpoint_x = setpoint_x;
             }
 
+            // Check y limits and record new setpoint
             if (setpoint_y > mds_info.upper_y) {
                 mds_info.setpoint_y = mds_info.upper_y;
                 err = MDS_OUT_OF_BOUNDS;
@@ -785,7 +792,7 @@ static inline void mds_set_output_x(float volts)
         if (volts > mds_info.sat_x) volts = mds_info.sat_x;
 
         // Calculate duty cycle percentage (in 100ths of percent)
-        uint32_t percentage = (uint32_t) lroundf((volts * 10000.0) / 20.0);
+        uint32_t percentage = (uint32_t) lroundf((volts * 10000.0) / MDS_SUPPLY_VOLTS);
         pwmEnableChannel(&PWMD1, DRIVE_X_CHANNEL, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, percentage));
 
         // Enable channel
@@ -821,7 +828,7 @@ static inline void mds_set_output_y(float volts)
         if (volts > mds_info.sat_y) volts = mds_info.sat_y;
 
         // Calculate duty cycle percentage (in 100ths of percent)
-        uint32_t percentage = (uint32_t) lroundf((volts * 10000.0) / 20.0);
+        uint32_t percentage = (uint32_t) lroundf((volts * 10000.0) / MDS_SUPPLY_VOLTS);
         pwmEnableChannel(&PWMD1, DRIVE_Y_CHANNEL, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, percentage));
 
         // Enable channel
