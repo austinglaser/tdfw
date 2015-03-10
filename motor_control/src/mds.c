@@ -469,8 +469,8 @@ mds_err_t mds_stop_calibration(void)
             mds_info.offset_y = mds_info.cal_min_y;
 
             // Check that we've done a valid calibration
-            // TODO: add y logic in
-            if (mds_counts_to_mm_x(mds_info.cal_max_x) >= MDS_SAFETY_ZONE_MM_X*2)
+            if (mds_counts_to_mm_x(mds_info.cal_max_x) >= MDS_SAFETY_ZONE_MM_X*2 && 
+                mds_counts_to_mm_y(mds_info.cal_max_y) >= MDS_SAFETY_ZONE_MM_Y*2)
             {
                 // Calculate playfield
                 mds_info.lower_x = MDS_SAFETY_ZONE_MM_X;
