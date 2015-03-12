@@ -134,7 +134,7 @@ int main(void)
 
                 kp = string_to_float(buf);
                 chprintf((BaseSequentialStream*) &SD1, "updating kp=%f\r\n",kp);
-                mds_set_pid_x(kp, ki, kd, sat, 0);
+                mds_set_pid_y(kp, ki, kd, sat, 0);
                 break;
 
             case 'i':
@@ -155,7 +155,7 @@ int main(void)
 
                 ki = string_to_float(buf);
                 chprintf((BaseSequentialStream*) &SD1, "updating ki=%f\r\n",ki);
-                mds_set_pid_x(kp, ki, kd, sat, 0);
+                mds_set_pid_y(kp, ki, kd, sat, 0);
                 break;
 
             case 'd':
@@ -175,7 +175,7 @@ int main(void)
 
                 kd = string_to_float(buf);
                 chprintf((BaseSequentialStream*) &SD1, "updating kd=%f\r\n",kd);
-                mds_set_pid_x(kp, ki, kd, sat, 0);
+                mds_set_pid_y(kp, ki, kd, sat, 0);
                 break;
 
             case 'a':
@@ -195,7 +195,7 @@ int main(void)
 
                 sat = string_to_float(buf);
                 chprintf((BaseSequentialStream*) &SD1, "updating sat=%f\r\n",sat);
-                mds_set_pid_x(kp, ki, kd, sat, 0);
+                mds_set_pid_y(kp, ki, kd, sat, 0);
                 break;
 
             default:
@@ -210,10 +210,10 @@ static msg_t drive_thread_f(void * context)
     (void) context;
 
     while (TRUE) {
-        mds_set_location(400.0, 50.0);
-        chThdSleepMilliseconds(1000);
+        mds_set_location(200.0, 250.0);
+        chThdSleepMilliseconds(3000);
         mds_set_location(200.0, 50.0);
-        chThdSleepMilliseconds(1000);
+        chThdSleepMilliseconds(3000);
     }
 
     // Pedantic
