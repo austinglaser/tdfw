@@ -30,13 +30,14 @@ typedef enum {
     MDS_INVALID_MODE,           /**< I can't do that Dave */
     MDS_INVALID_PARAM,          /**< one dem params not right dawg */
     MDS_OUT_OF_BOUNDS,          /**< TOO BIG! TOO SMALL! AAAAAH */
+    MDS_BAD_CALIBRATION,        /**< Not enough movement during calibration */
     MDS_FAIL,                   /**< Sometink vent wrong. Ve don't know vat */
 } mds_err_t;
 
 /* --- PUBLIC FUNCTION PROTOTYPES ------------------------------------------- */
 
 /**
- * @brief   Initializes the MDS system. Does not start motion or initiat calibration
+ * @brief   Initializes the MDS system. Does not start motion or initiate calibration
  */
 void mds_init(void);
 
@@ -97,9 +98,15 @@ mds_err_t mds_start_calibration(void);
  * @note    The MDS uses the provided size of the playfield to calculate
  *          the conversion from pixel values
  *
+ * @param[out] lower_x:     Lower x boundary of playfield, in mm
+ * @param[out] upper_x:     Upper x boundary of playfield, in mm
+ * @param[out] lower_y:     Lower y boundary of playfield, in mm
+ * @param[out] upper_y:     Upper y boundary of playfield, in mm
+ *
  * @retval MDS_SUCCESS:         Calibration has completed successfuly
+ * @retval MDS_BAD_CALIBRATION: Calibration encountered problems
  */
-mds_err_t mds_stop_calibration(void);
+mds_err_t mds_stop_calibration(float* lower_x, float* upper_x, float* lower_y, float* upper_y);
 
 /**
  * @brief   Puts the mallet under MDS control

@@ -25,6 +25,7 @@
 
 // Project
 #include "mds.h"
+#include "util.h"
 
 /* --- PRIVATE DEFINITIONS -------------------------------------------------- */
 
@@ -101,7 +102,6 @@
 #define MDS_MAX_COUNT_VALUE_X   UINT32_MAX
 #define MDS_MAX_COUNT_VALUE_Y   UINT16_MAX
 
-#define PRINTF(...)           chprintf((BaseSequentialStream*) &SD1, __VA_ARGS__)
 #define ST2MS(st) (((st) * 1000L) / CH_FREQUENCY)
 
 /* --- PRIVATE DATA TYPES --------------------------------------------------- */
@@ -452,53 +452,61 @@ mds_err_t mds_start_calibration(void)
     return MDS_SUCCESS;
 }
 
-mds_err_t mds_stop_calibration(void)
+mds_err_t mds_stop_calibration(float* lower_x, float* upper_x, float* lower_y, float* upper_y)
 {
     mds_err_t err;
 
     // Lock
     chSemWait(&mds_lock_sem);
 
-    switch (mds_info.mode) {
-        case MDS_MODE_CALIBRATING:
-            // Leave calibration mode
-            mds_info.mode = MDS_MODE_OFF;
+    if (!lower_x || !upper_x || !lower_y || !upper_y) err = MDS_INVALID_PARAM;
 
-            // Set offset
-            mds_info.offset_x = mds_info.cal_min_x;
-            mds_info.offset_y = mds_info.cal_min_y;
+    else {
+        // Initialize calibration values
+        *lower_x = 0.0; 
+        *upper_x = 0.0; 
+        *lower_y = 0.0; 
+        *upper_y = 0.0; 
 
-            // Check that we've done a valid calibration
-            if (mds_counts_to_mm_x(mds_info.cal_max_x) >= MDS_SAFETY_ZONE_MM_X*2 && 
-                mds_counts_to_mm_y(mds_info.cal_max_y) >= MDS_SAFETY_ZONE_MM_Y*2)
-            {
-                // Calculate playfield
-                mds_info.lower_x = MDS_SAFETY_ZONE_MM_X;
-                mds_info.lower_y = MDS_SAFETY_ZONE_MM_Y;
-                mds_info.upper_x = mds_counts_to_mm_x(mds_info.cal_max_x) - MDS_SAFETY_ZONE_MM_X;
-                mds_info.upper_y = mds_counts_to_mm_y(mds_info.cal_max_y) - MDS_SAFETY_ZONE_MM_Y;
+        switch (mds_info.mode) {
+            case MDS_MODE_CALIBRATING:
+                // Leave calibration mode
+                mds_info.mode = MDS_MODE_OFF;
 
-                // Record that we're calibrated
-                mds_info.is_calibrated  = 1;
+                // Set offset
+                mds_info.offset_x = mds_info.cal_min_x;
+                mds_info.offset_y = mds_info.cal_min_y;
 
-                // Report calibration values
-                chprintf((BaseSequentialStream*) &SD1, "x range (mm):\t(%f, %f)\r\n", 0.0, mds_counts_to_mm_x(mds_info.cal_max_x));
-                chprintf((BaseSequentialStream*) &SD1, "y range (mm):\t(%f, %f)\r\n", 0.0, mds_counts_to_mm_y(mds_info.cal_max_y));
-                chprintf((BaseSequentialStream*) &SD1, "x boundaries (mm):\t(%f, %f)\r\n", mds_info.lower_x, mds_info.upper_x);
-                chprintf((BaseSequentialStream*) &SD1, "y boundaries (mm):\t(%f, %f)\r\n", mds_info.lower_y, mds_info.upper_y);
+                // Check that we've done a valid calibration
+                if (mds_counts_to_mm_x(mds_info.cal_max_x) >= MDS_SAFETY_ZONE_MM_X*2 && 
+                    mds_counts_to_mm_y(mds_info.cal_max_y) >= MDS_SAFETY_ZONE_MM_Y*2)
+                {
+                    // Calculate playfield
+                    mds_info.lower_x = MDS_SAFETY_ZONE_MM_X;
+                    mds_info.lower_y = MDS_SAFETY_ZONE_MM_Y;
+                    mds_info.upper_x = mds_counts_to_mm_x(mds_info.cal_max_x) - MDS_SAFETY_ZONE_MM_X;
+                    mds_info.upper_y = mds_counts_to_mm_y(mds_info.cal_max_y) - MDS_SAFETY_ZONE_MM_Y;
 
-                // Indicate success
-                err = MDS_SUCCESS;
-            }
-            else {
-                err = MDS_FAIL;
-            }
-            break;
-            
-        default:
-            // Wrong mode
-            err = MDS_INVALID_MODE;
-            break;
+                    // Record that we're calibrated
+                    mds_info.is_calibrated  = 1;
+
+                    // Record calibration values
+                    *upper_x = mds_counts_to_mm_x(mds_info.cal_max_x);
+                    *upper_y = mds_counts_to_mm_y(mds_info.cal_max_y);
+
+                    // Indicate success
+                    err = MDS_SUCCESS;
+                }
+                else {
+                    err = MDS_BAD_CALIBRATION;
+                }
+                break;
+
+            default:
+                // Wrong mode
+                err = MDS_INVALID_MODE;
+                break;
+        }
     }
 
     // Release lock
