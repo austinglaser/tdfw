@@ -71,7 +71,7 @@
 #define EN_Y_PORT       GPIOE
 #define EN_Y_PIN        (14)
 
-#define MDS_LOOP_TIME_MS        (10)
+#define MDS_LOOP_TIME_MS        (1)
 
 #define MDS_KP_DEFAULT_X        (0.15)      /**< Default proportional loop constant */
 #define MDS_KI_DEFAULT_X        (0.000005)  /**< Default integral loop constant */
