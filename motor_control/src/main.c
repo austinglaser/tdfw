@@ -87,6 +87,9 @@ typedef enum {
     SERIAL_ERROR_INVALID,           /**< Invalid serial error */
 } serial_error_t;
 
+/**
+ * @brief   Control characters for serial communication
+ */
 typedef enum {
     SERIAL_START            = 'G',  /**< Start character for all transactions */
     SERIAL_ON               = 'O',  /**< Board is powered and ready to recieve commands */
@@ -102,6 +105,9 @@ typedef enum {
     SERIAL_ERROR            = 'E',  /**< Error character */
 } serial_char_t;
 
+/**
+ * @brief   Type of a mode handler for the serial state machine
+ */
 typedef void (*serial_mode_handler_t)(uint8_t);
 
 /* --- PRIVATE FUNCTION PROTOTYPES ------------------------------------------ */
@@ -212,6 +218,24 @@ static void serial_mode_calibrate_done_handler(uint8_t c);
 static void serial_mode_error_handler(uint8_t c);
 
 /**
+ * @brief   Accumulates characters, then interprets them as a float
+ *
+ * @param[out] value:   When done, writes value here
+ * @param[in]  c:       The last character read
+ *
+ * @return:     False if done, value has valid information. False otherwise
+ */
+static int32_t serial_read_float(float* value, uint8_t c);
+
+/**
+ * @brief   Sets an error code
+ *
+ * @param[in] err:  The new error code to be set
+ * @param[in] c:    The last character recieved. Determines whether it's printed immediately or not
+ */
+static inline void serial_set_error(serial_error_t err, uint8_t c);
+
+/**
  * @brief   Respond with an ack
  */
 static inline void serial_send_ack(void);
@@ -224,14 +248,6 @@ static inline void serial_send_ack(void);
 static inline void serial_send_error(void);
 
 /**
- * @brief   Sets an error code
- *
- * @param[in] err:  The new error code to be set
- * @param[in] c:    The last character recieved. Determines whether it's printed immediately or not
- */
-static inline void serial_set_error(serial_error_t err, uint8_t c);
-
-/**
  * @brief   Tries to interpret the string in buf as a float
  */
 static int string_to_float(uint8_t* buf, float* number);
@@ -240,9 +256,6 @@ static int string_to_float(uint8_t* buf, float* number);
 
 static serial_mode_t serial_mode;   /**< Mode variable for serial state machine */
 static serial_error_t serial_error; /**< Error which occurred during serial transaction */
-
-static uint8_t serial_buf[BUF_LEN]; /**< Buffer for multi-character values */
-static uint32_t serial_buf_index;   /**< Index of next open slot in buffer */
 
 static float kp_x = 0.0;            /**< X proportional constant */
 static float ki_x = 0.0;            /**< X integral constant */
@@ -270,6 +283,7 @@ static serial_mode_handler_t serial_mode_handler[MAX_SERIAL_MODE] = {
     serial_mode_param_x_i_handler,
     serial_mode_param_x_d_handler,
     serial_mode_param_x_s_handler,
+
     serial_mode_param_y_handler,
     serial_mode_param_y_p_handler,
     serial_mode_param_y_i_handler,
@@ -347,11 +361,7 @@ int main(void)
         c = sdGet(&SD1);
 
         // TODO: Take out echo?
-        if (c == '\r' || c == '\n') {
-            sdPut(&SD1, '\r');
-            sdPut(&SD1, '\n');
-        }
-        else sdPut(&SD1, c);
+        ECHO(c);
 
         // Call the appropriate handler
         serial_mode_handler[serial_mode](c);
@@ -360,8 +370,6 @@ int main(void)
 
 static void serial_mode_idle_handler(uint8_t c)
 {
-    DEBUG_PRINTF("idle\r\n");
-
     // Handle start character
     if (c == SERIAL_START) {
         serial_mode = SERIAL_MODE_STARTED;
@@ -377,8 +385,6 @@ static void serial_mode_idle_handler(uint8_t c)
 
 static void serial_mode_started_handler(uint8_t c)
 {
-    DEBUG_PRINTF("started\r\n");
-
     // Handle message type character
     switch (c) {
         case SERIAL_PARAM:
@@ -413,8 +419,6 @@ static void serial_mode_started_handler(uint8_t c)
 
 static void serial_mode_param_handler(uint8_t c)
 {
-    DEBUG_PRINTF("param\r\n");
-
     // Handle message sub-type
     switch (c) {
         case SERIAL_PARAM_X:
@@ -433,12 +437,7 @@ static void serial_mode_param_handler(uint8_t c)
 
 static void serial_mode_param_x_handler(uint8_t c)
 {
-    DEBUG_PRINTF("param_x\r\n");
-
     if (c == ':') {
-        // Zero out buffer
-        serial_buf_index = 0;
-
         // Go to next mode
         serial_mode = SERIAL_MODE_PARAM_X_P;
         return;
@@ -452,204 +451,87 @@ static void serial_mode_param_x_handler(uint8_t c)
 
 static void serial_mode_param_x_p_handler(uint8_t c)
 {
-    DEBUG_PRINTF("param_x_p\r\n");
+    // Add character to accumulator. If we're done,
+    // go to the next mode (Other state transitions handled internally)
+    if (!serial_read_float(&kp_x, c))
+    {
+        // Got a good number! next mode
+        if (c == ',') serial_mode = SERIAL_MODE_PARAM_X_I;
 
-    // Record numerical characters
-    if (('0' <= c && c <= '9') || c == '.') {
-        serial_buf[serial_buf_index] = c;
-        serial_buf_index++;
-    }
-
-    // Separator
-    else if (c == ',') {
-        // Add terminator
-        serial_buf[serial_buf_index] = '\0';
-
-        // Interpret value
-        kp_x = 0.0;
-        if (string_to_float(serial_buf, &kp_x)) {
-            // Bad value
-            serial_set_error(SERIAL_ERROR_PARSE_VALUE, c);
-            return;
+        // Bad character
+        else {
+            serial_set_error(SERIAL_ERROR_BAD_SEPARATOR, c);
         }
-
-        // Next value
-        serial_buf_index = 0;
-        serial_mode = SERIAL_MODE_PARAM_X_I;
-        return;
-    }
-
-    // Bad character
-    else {
-        serial_set_error(SERIAL_ERROR_BAD_SEPARATOR, c);
-        return;
     }
 }
 
 static void serial_mode_param_x_i_handler(uint8_t c)
 {
-    DEBUG_PRINTF("param_x_i\r\n");
+    // Add character to accumulator. If we're done,
+    // go to the next mode (Other state transitions handled internally)
+    if (!serial_read_float(&ki_x, c))
+    {
+        // Got a good number! next mode
+        if (c == ',') serial_mode = SERIAL_MODE_PARAM_X_D;
 
-    // Record numerical characters
-    if (('0' <= c && c <= '9') || c == '.') {
-        serial_buf[serial_buf_index] = c;
-        serial_buf_index++;
-    }
-    
-    // Separator
-    else if (c == ',') {
-        // Add terminator
-        serial_buf[serial_buf_index] = '\0';
-
-        // Interpret value
-        ki_x = 0.0;
-        if (string_to_float(serial_buf, &ki_x)) {
-            // Bad value
-            serial_set_error(SERIAL_ERROR_PARSE_VALUE, c);
-            return;
-        }
-
-        // Next value
-        serial_buf_index = 0;
-        serial_mode = SERIAL_MODE_PARAM_X_D;
-        return;
-    }
-
-    else {
         // Bad character
-        serial_set_error(SERIAL_ERROR_BAD_SEPARATOR, c);
-        return;
+        else {
+            serial_set_error(SERIAL_ERROR_BAD_SEPARATOR, c);
+        }
     }
 }
 
 static void serial_mode_param_x_d_handler(uint8_t c)
 {
-    DEBUG_PRINTF("param_x_d\r\n");
+    // Add character to accumulator. If we're done,
+    // go to the next mode (Other state transitions handled internally)
+    if (!serial_read_float(&kd_x, c))
+    {
+        // Got a good number! next mode
+        if (c == ',') serial_mode = SERIAL_MODE_PARAM_X_S;
 
-    // Record numerical characters
-    if (('0' <= c && c <= '9') || c == '.') {
-        serial_buf[serial_buf_index] = c;
-        serial_buf_index++;
-    }
-    
-    // Separator
-    else if (c == ',') {
-        // Add terminator
-        serial_buf[serial_buf_index] = '\0';
-
-        // Interpret value
-        kd_x = 0.0;
-        if (string_to_float(serial_buf, &kd_x)) {
-            // Bad value
-            serial_set_error(SERIAL_ERROR_PARSE_VALUE, c);
-            return;
-        }
-
-        // Next value
-        serial_buf_index = 0;
-        serial_mode = SERIAL_MODE_PARAM_X_S;
-        return;
-    }
-
-    else {
         // Bad character
-        serial_set_error(SERIAL_ERROR_BAD_SEPARATOR, c);
-        return;
+        else {
+            serial_set_error(SERIAL_ERROR_BAD_SEPARATOR, c);
+        }
     }
 }
 
 static void serial_mode_param_x_s_handler(uint8_t c)
 {
-    DEBUG_PRINTF("param_x_s\r\n");
-
-    // Static initialization only happens once
-    static uint32_t got_number = 0;
-
-    if (!got_number) {
-        // Numerical character
-        if (('0' <= c && c <= '9') || c == '.') {
-            serial_buf[serial_buf_index] = c;
-            serial_buf_index++;
+    // Add character to accumulator. If we're done, deal with value
+    if (!serial_read_float(&sat_x, c))
+    {
+        // If we had a trailing comma, get the next character
+        if (c == ',') {
+            c = sdGet(&SD1);
+            ECHO(c);
         }
 
-        // Separator
-        else if (c == ',') {
-            // Add terminator
-            serial_buf[serial_buf_index] = '\0';
-
-            // Interpret value
-            sat_x = 0.0;
-            if (string_to_float(serial_buf, &sat_x)) {
-                // Bad value
-                serial_set_error(SERIAL_ERROR_PARSE_VALUE, c);
-                return;
-            }
-
-            // We're done
-            got_number = 1;
-        }
-
-        // Bad character
-        else {
-            serial_set_error(SERIAL_ERROR_BAD_SEPARATOR, c);
+        if (c != '\r' && c != '\n') {
+            serial_set_error(SERIAL_ERROR_TRAILING_CHARS, c);
             return;
         }
-    }
 
-    else if (c == '\n' || c == '\r') {
-        if (!got_number) {
-            // Add terminator
-            serial_buf[serial_buf_index] = '\0';
-
-            // Interpret value
-            sat_x = 0.0;
-            if (string_to_float(serial_buf, &sat_x)) {
-                // Bad value
-                serial_mode = SERIAL_MODE_ERROR;
-                serial_error = SERIAL_ERROR_PARSE_VALUE;
-                return;
-            }
-        }
-
-        // Reset buffer index
-        serial_buf_index = 0;
-
-        // Reset got_number
-        got_number = 0;
-
-        // Set loop params
+        // Success! Set loop params
+        DEBUG_PRINTF("kp_x: %f, ki_x: %f, kd_x: %f, sat_x: %f\r\n", kp_x, ki_x, kd_x, sat_x);
         serial_error = mds_set_pid_x(kp_x, ki_x, kd_x, sat_x, 0);
 
+        // Check return code
         if (serial_error != SERIAL_ERROR_NONE) serial_send_error();
         else                                   serial_send_ack();
 
         // Reset state machine
-        serial_error = SERIAL_ERROR_NONE;
         serial_mode = SERIAL_MODE_IDLE;
-        return;
-    }
-
-    else {
-        // Reset got_number
-        got_number = 0;
-
-        // Record error
-        serial_error = SERIAL_ERROR_TRAILING_CHARS;
-        serial_mode = SERIAL_MODE_ERROR;
-        return;
+        serial_error = SERIAL_ERROR_NONE;
     }
 }
 
 static void serial_mode_param_y_handler(uint8_t c)
 {
-    DEBUG_PRINTF("param_y\r\n");
-
     if (c == ':') {
-        // Zero out buffer
-        serial_buf_index = 0;
-
         // Go to next mode
-        serial_mode = SERIAL_MODE_PARAM_X_P;
+        serial_mode = SERIAL_MODE_PARAM_Y_P;
         return;
     }
     else {
@@ -661,199 +543,85 @@ static void serial_mode_param_y_handler(uint8_t c)
 
 static void serial_mode_param_y_p_handler(uint8_t c)
 {
-    DEBUG_PRINTF("param_y_p\r\n");
+    // Add character to accumulator. If we're done,
+    // go to the next mode (Other state transitions handled internally)
+    if (!serial_read_float(&kp_y, c))
+    {
+        // Got a good number! next mode
+        if (c == ',') serial_mode = SERIAL_MODE_PARAM_Y_I;
 
-    // Record numerical characters
-    if (('0' <= c && c <= '9') || c == '.') {
-        serial_buf[serial_buf_index] = c;
-        serial_buf_index++;
-    }
-    
-    // Separator
-    else if (c == ',') {
-        // Add terminator
-        serial_buf[serial_buf_index] = '\0';
-
-        // Interpret value
-        kp_y = 0.0;
-        if (string_to_float(serial_buf, &kp_y)) {
-            // Bad value
-            serial_set_error(SERIAL_ERROR_PARSE_VALUE, c);
-            return;
-        }
-
-        // Next value
-        serial_buf_index = 0;
-        serial_mode = SERIAL_MODE_PARAM_X_I;
-        return;
-    }
-
-    else {
         // Bad character
-        serial_set_error(SERIAL_ERROR_BAD_SEPARATOR, c);
-        return;
+        else {
+            serial_set_error(SERIAL_ERROR_BAD_SEPARATOR, c);
+        }
     }
 }
 
 static void serial_mode_param_y_i_handler(uint8_t c)
 {
-    DEBUG_PRINTF("param_y_i\r\n");
+    // Add character to accumulator. If we're done,
+    // go to the next mode (Other state transitions handled internally)
+    if (!serial_read_float(&ki_y, c))
+    {
+        // Got a good number! next mode
+        if (c == ',') serial_mode = SERIAL_MODE_PARAM_Y_D;
 
-    // Record numerical characters
-    if (('0' <= c && c <= '9') || c == '.') {
-        serial_buf[serial_buf_index] = c;
-        serial_buf_index++;
-    }
-    
-    // Separator
-    else if (c == ',') {
-        // Add terminator
-        serial_buf[serial_buf_index] = '\0';
-
-        // Interpret value
-        ki_y = 0.0;
-        if (string_to_float(serial_buf, &ki_y)) {
-            // Bad value
-            serial_set_error(SERIAL_ERROR_PARSE_VALUE, c);
-            return;
-        }
-
-        // Next value
-        serial_buf_index = 0;
-        serial_mode = SERIAL_MODE_PARAM_X_D;
-        return;
-    }
-
-    else {
         // Bad character
-        serial_set_error(SERIAL_ERROR_BAD_SEPARATOR, c);
+        else {
+            serial_set_error(SERIAL_ERROR_BAD_SEPARATOR, c);
+        }
     }
 }
 
 static void serial_mode_param_y_d_handler(uint8_t c)
 {
-    DEBUG_PRINTF("param_y_d\r\n");
+    // Add character to accumulator. If we're done,
+    // go to the next mode (Other state transitions handled internally)
+    if (!serial_read_float(&kd_y, c))
+    {
+        // Got a good number! next mode
+        if (c == ',') serial_mode = SERIAL_MODE_PARAM_Y_S;
 
-    // Record numerical characters
-    if (('0' <= c && c <= '9') || c == '.') {
-        serial_buf[serial_buf_index] = c;
-        serial_buf_index++;
-    }
-    
-    // Separator
-    else if (c == ',') {
-        // Add terminator
-        serial_buf[serial_buf_index] = '\0';
-
-        // Interpret value
-        kd_y = 0.0;
-        if (string_to_float(serial_buf, &kd_y)) {
-            // Bad value
-            serial_set_error(SERIAL_ERROR_PARSE_VALUE, c);
-            return;
-        }
-
-        // Next value
-        serial_buf_index = 0;
-        serial_mode = SERIAL_MODE_PARAM_X_S;
-        return;
-    }
-
-    else {
         // Bad character
-        serial_set_error(SERIAL_ERROR_BAD_SEPARATOR, c);
+        else {
+            serial_set_error(SERIAL_ERROR_BAD_SEPARATOR, c);
+        }
     }
 }
 
 static void serial_mode_param_y_s_handler(uint8_t c)
 {
-    DEBUG_PRINTF("param_y_s\r\n");
-
-    // Static initialization only happens once
-    static uint32_t got_number = 0;
-
-    if (!got_number && c != '\r' && c != '\n') {
-        // Numerical character
-        if (('0' <= c && c <= '9') || c == '.') {
-            serial_buf[serial_buf_index] = c;
-            serial_buf_index++;
+    // Add character to accumulator. If we're done, deal with value
+    if (!serial_read_float(&sat_y, c))
+    {
+        // If we had a trailing comma, get the next character
+        if (c == ',') {
+            c = sdGet(&SD1);
+            ECHO(c);
         }
 
-        // Separator
-        else if (c == ',') {
-            // Add terminator
-            serial_buf[serial_buf_index] = '\0';
-
-            // Interpret value
-            sat_y = 0.0;
-            if (string_to_float(serial_buf, &sat_y)) {
-                // Bad value
-                serial_set_error(SERIAL_ERROR_PARSE_VALUE, c);
-                return;
-            }
-
-            // We're done
-            got_number = 1;
-        }
-
-        // Bad character
-        else {
-            serial_set_error(SERIAL_ERROR_BAD_SEPARATOR, c);
+        if (c != '\r' && c != '\n') {
+            serial_set_error(SERIAL_ERROR_TRAILING_CHARS, c);
             return;
         }
-    }
 
-    else if (c == '\n' || c == '\r') {
-        if (!got_number) {
-            // Add terminator
-            serial_buf[serial_buf_index] = '\0';
-
-            // Interpret value
-            sat_y = 0.0;
-            if (string_to_float(serial_buf, &sat_y)) {
-                // Bad value
-                serial_set_error(SERIAL_ERROR_PARSE_VALUE, c);
-                return;
-            }
-        }
-
-        // Reset buffer index
-        serial_buf_index = 0;
-
-        // Reset got_number
-        got_number = 0;
-
-        // Set loop params
+        // Success! Set loop params
+        DEBUG_PRINTF("kp_y: %f, ki_y: %f, kd_y: %f, sat_y: %f\r\n", kp_y, ki_y, kd_y, sat_y);
         serial_error = mds_set_pid_y(kp_y, ki_y, kd_y, sat_y, 0);
 
+        // Check return code
         if (serial_error != SERIAL_ERROR_NONE) serial_send_error();
         else                                   serial_send_ack();
 
         // Reset state machine
-        serial_error = SERIAL_ERROR_NONE;
         serial_mode = SERIAL_MODE_IDLE;
-        return;
-    }
-
-    else {
-        // Reset got_number
-        got_number = 0;
-
-        // Record error
-        serial_error = SERIAL_ERROR_TRAILING_CHARS;
-        serial_mode = SERIAL_MODE_ERROR;
-        return;
+        serial_error = SERIAL_ERROR_NONE;
     }
 }
 
 static void serial_mode_location_handler(uint8_t c)
 {
-    DEBUG_PRINTF("location\r\n");
-
     if (c == ':') {
-        // Zero out buffer
-        serial_buf_index = 0;
-
         // Go to next mode
         serial_mode = SERIAL_MODE_LOCATION_X;
         return;
@@ -868,124 +636,52 @@ static void serial_mode_location_handler(uint8_t c)
 
 static void serial_mode_location_x_handler(uint8_t c)
 {
-    DEBUG_PRINTF("location_x\r\n");
+    // Add character to accumulator. If we're done,
+    // go to the next mode (Other state transitions handled internally)
+    if (!serial_read_float(&location_x, c))
+    {
+        // Got a good number! next mode
+        if (c == ',') serial_mode = SERIAL_MODE_LOCATION_Y;
 
-    // Record numerical characters
-    if (('0' <= c && c <= '9') || c == '.') {
-        serial_buf[serial_buf_index] = c;
-        serial_buf_index++;
-    }
-    
-    // Separator
-    else if (c == ',') {
-        // Add terminator
-        serial_buf[serial_buf_index] = '\0';
-
-        // Interpret value
-        location_x = 0.0;
-        if (string_to_float(serial_buf, &location_x)) {
-            // Bad value
-            serial_set_error(SERIAL_ERROR_PARSE_VALUE, c);
-            return;
-        }
-
-        // Next value
-        serial_buf_index = 0;
-        serial_mode = SERIAL_MODE_LOCATION_Y;
-        return;
-    }
-
-    else {
         // Bad character
-        serial_set_error(SERIAL_ERROR_BAD_SEPARATOR, c);
+        else {
+            serial_set_error(SERIAL_ERROR_BAD_SEPARATOR, c);
+        }
     }
 }
 
 static void serial_mode_location_y_handler(uint8_t c)
 {
-    DEBUG_PRINTF("location_y\r\n");
-
-    // Static initialization only happens once
-    static uint32_t got_number = 0;
-
-    if (!got_number && c != '\r' && c != '\n') {
-        // Numerical character
-        if (('0' <= c && c <= '9') || c == '.') {
-            serial_buf[serial_buf_index] = c;
-            serial_buf_index++;
+    // Add character to accumulator. If we're done, deal with value
+    if (!serial_read_float(&location_y, c))
+    {
+        // If we had a trailing comma, get the next character
+        if (c == ',') {
+            c = sdGet(&SD1);
+            ECHO(c);
         }
 
-        // Separator
-        else if (c == ',') {
-            // Add terminator
-            serial_buf[serial_buf_index] = '\0';
-
-            // Interpret value
-            location_y = 0.0;
-            if (string_to_float(serial_buf, &location_y)) {
-                // Bad value
-                serial_set_error(SERIAL_ERROR_PARSE_VALUE, c);
-                return;
-            }
-
-            // We're done
-            got_number = 1;
-        }
-
-        // Bad character
-        else {
-            serial_set_error(SERIAL_ERROR_BAD_SEPARATOR, c);
+        if (c != '\r' && c != '\n') {
+            serial_set_error(SERIAL_ERROR_TRAILING_CHARS, c);
             return;
         }
-    }
 
-    else if (c == '\n' || c == '\r') {
-        if (!got_number) {
-            // Add terminator
-            serial_buf[serial_buf_index] = '\0';
-
-            // Interpret value
-            sat_y = 0.0;
-            if (string_to_float(serial_buf, &sat_y)) {
-                // Bad value
-                serial_set_error(SERIAL_ERROR_PARSE_VALUE, c);
-                return;
-            }
-        }
-
-        // Reset buffer index
-        serial_buf_index = 0;
-
-        // Reset got_number
-        got_number = 0;
-
-        // Set location
+        // Success! Set loop params
+        DEBUG_PRINTF("location_x: %f, location_y: %f\r\n", location_x, location_y);
         serial_error = mds_set_location(location_x, location_y);
 
-        // Check error value
+        // Check return code
         if (serial_error != SERIAL_ERROR_NONE) serial_send_error();
         else                                   serial_send_ack();
 
         // Reset state machine
-        serial_error = SERIAL_ERROR_NONE;
         serial_mode = SERIAL_MODE_IDLE;
-        return;
-    }
-
-    else {
-        // Reset got_number
-        got_number = 0;
-
-        // Record error
-        serial_set_error(SERIAL_ERROR_TRAILING_CHARS, c);
-        return;
+        serial_error = SERIAL_ERROR_NONE;
     }
 }
 
 static void serial_mode_run_handler(uint8_t c)
 {
-    DEBUG_PRINTF("run\r\n");
-
     if (c == '\r' || c == '\n') {
         // Start the MDS
         serial_error = mds_start();
@@ -1007,8 +703,6 @@ static void serial_mode_run_handler(uint8_t c)
 
 static void serial_mode_stop_handler(uint8_t c)
 {
-    DEBUG_PRINTF("stop\r\n");
-
     if (c == '\r' || c == '\n') {
         // Start the MDS
         serial_error = mds_stop();
@@ -1030,8 +724,6 @@ static void serial_mode_stop_handler(uint8_t c)
 
 static void serial_mode_calibrate_handler(uint8_t c)
 {
-    DEBUG_PRINTF("calibrate\r\n");
-
     if (c == '\r' || c == '\n') {
         // Start the MDS
         serial_error = mds_start_calibration();
@@ -1053,8 +745,6 @@ static void serial_mode_calibrate_handler(uint8_t c)
 
 static void serial_mode_calibrate_done_handler(uint8_t c)
 {
-    DEBUG_PRINTF("calibrate_done\r\n");
-
     float lower_x;
     float upper_x;
     float lower_y;
@@ -1069,8 +759,6 @@ static void serial_mode_calibrate_done_handler(uint8_t c)
 
         // Otherwise report back calibration values
         else {
-            DEBUG_PRINTF("\r\n");
-
             PRINTF("%c%c:%f,%f,%f,%f\r\n", SERIAL_START, SERIAL_CALIBRATE, lower_x, upper_x, lower_y, upper_y);
         }
 
@@ -1087,8 +775,6 @@ static void serial_mode_calibrate_done_handler(uint8_t c)
 
 static void serial_mode_error_handler(uint8_t c)
 {
-    DEBUG_PRINTF("error\r\n");
-
     // Check for a finished transaction
     if (c == '\r' || c == '\n') {
         // Print error message
@@ -1102,17 +788,56 @@ static void serial_mode_error_handler(uint8_t c)
 
 static inline void serial_send_ack(void)
 {
-    DEBUG_PRINTF("\r\n");
-
     PRINTF("%c%c\r\n", SERIAL_START, SERIAL_ACK);
 }
 
 static inline void serial_send_error(void)
 {
-    DEBUG_PRINTF("\r\n");
-
     PRINTF("%c%c:%s\r\n", SERIAL_START, SERIAL_ERROR, serial_error_string[serial_error]);
 }
+
+static int32_t serial_read_float(float* value, uint8_t c)
+{
+    static uint8_t serial_buf[BUF_LEN];
+    static uint32_t serial_buf_index = 0;
+
+    // Record numerical characters
+    if (('0' <= c && c <= '9') || c == '.') {
+        serial_buf[serial_buf_index] = c;
+        serial_buf_index++;
+        return 1;
+    }
+
+    // Separator
+    else if (c == ',' || c == '\r' || c == '\n') {
+        if (serial_buf_index == 0) {
+            serial_set_error(SERIAL_ERROR_PARSE_VALUE, c);
+            return 1;
+        }
+
+        // Add terminator
+        serial_buf[serial_buf_index] = '\0';
+        serial_buf_index = 0;
+
+        // Interpret value
+        *value = 0.0;
+        DEBUG_PRINTF("%s\r\n", (char*) serial_buf);
+        if (string_to_float(serial_buf, value)) {
+            // Bad value
+            serial_set_error(SERIAL_ERROR_PARSE_VALUE, c);
+            return -1;
+        }
+        return 0;
+    }
+
+    // Bad character
+    else {
+        serial_buf_index = 0;
+        serial_set_error(SERIAL_ERROR_BAD_SEPARATOR, c);
+        return -1;
+    }
+}
+
 
 static inline void serial_set_error(serial_error_t err, uint8_t c)
 {
@@ -1154,7 +879,10 @@ static int string_to_float(uint8_t* buf, float* number)
     uint32_t len;
 
     // Check pointers
-    if (!number || !buf) return 1;
+    if (!number || !buf) {
+        DEBUG_PRINTF("null pointer\r\n");
+        return 1;
+    }
 
     // Initialize
     *number = 0.0;
@@ -1172,12 +900,6 @@ static int string_to_float(uint8_t* buf, float* number)
     // Read back from the end
     for (i--; i >= 0; i--) {
         if (buf[i] == '.') {
-            // Check if not the first decimal point
-            if (exp ||
-                (buf[len-1] = '.' && ((uint32_t) i) != len - 1)){
-                return 1;
-            }
-
             // Record decimal point location
             exp = len - i - 1;
         }
@@ -1187,7 +909,10 @@ static int string_to_float(uint8_t* buf, float* number)
             n = (uint32_t) (buf[i] - '0');
 
             // Check whether valid digit
-            if (n > 9) return 1;
+            if (n > 9) {
+                DEBUG_PRINTF("invalid digit\r\n");
+                return 1;
+            }
 
             // Add to accumulator
             *number += ((float) n) * digit;
