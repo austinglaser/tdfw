@@ -715,14 +715,14 @@ static msg_t mds_update_thread_f(void * context)
                 mds_set_output_y(command_y);
 
                 //time,x,y,set_x,set_y,command_x,command_y;
-                PRINTF("%u,%f,%f,%f,%f,%f,%f;\r\n",
-                       ST2MS(chTimeNow()),
-                       location_x,
-                       location_y,
-                       mds_info.setpoint_x,
-                       mds_info.setpoint_y,
-                       command_x,
-                       command_y);
+                DEBUG_PRINTF("%u,%f,%f,%f,%f,%f,%f;\r\n",
+                             ST2MS(chTimeNow()),
+                             location_x,
+                             location_y,
+                             mds_info.setpoint_x,
+                             mds_info.setpoint_y,
+                             command_x,
+                             command_y);
                 break;
 
             case MDS_MODE_CALIBRATING:
@@ -748,7 +748,7 @@ static msg_t mds_update_thread_f(void * context)
 
         // Don't sleep forever!
         if (chTimeNow() >= next_time) {
-            PRINTF("Uh oh\r\n");
+            DEBUG_PRINTF("Uh oh\r\n");
             next_time = chTimeNow() + MS2ST(MDS_LOOP_TIME_MS);
         }
 
