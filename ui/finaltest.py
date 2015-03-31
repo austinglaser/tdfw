@@ -16,8 +16,13 @@ userScore = 0
 AHAScore = 0
 
 top = Tkinter.Tk()              # I dunno what this does... but it makes everything work
+w, h = top.winfo_screenwidth(), root.winfo_screenheight()
 top.overrideredirect(1)
+top.geometry("%dx%d+0+0" % (w, h))
 T 	= Text(top, height=2, width=30)
+
+top.focus_set() # <-- move focus to this widget
+top.bind("<Escape>", lambda e: e.widget.quit())
 
 path1  = "CalibrateStep1.jpg"
 path2  = "CalibrateStep2.jpg"
