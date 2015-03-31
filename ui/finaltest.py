@@ -16,13 +16,8 @@ userScore = 0
 AHAScore = 0
 
 top = Tkinter.Tk()              # I dunno what this does... but it makes everything work
-w, h = top.winfo_screenwidth(), top.winfo_screenheight()
 top.overrideredirect(1)
-top.geometry("%dx%d+0+0" % (w, h))
 T 	= Text(top, height=2, width=30)
-
-top.focus_set() # <-- move focus to this widget
-top.bind("<Escape>", lambda e: e.widget.quit())
 
 ui_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -81,6 +76,13 @@ PowerDown = 0                   # Power down value to write to controller for sy
 Calibrate = 0					# Calibrate value to write to controller for calibration start
 mode 	  = 0					# Mode value to write to controller for difficulty setting set up
 
+def key(event):
+    print "pressed", repr(event.char)
+    if event.char == "q":
+    	top.destroy()
+
+def callback(event):
+    print "clicked at", event.x, event.y
 
 def BG_Thread():
 	print "thread spawned"
@@ -178,8 +180,9 @@ def Next4():
 	panel4.pack()
 
 def turnOff():					# When Turn Off button is chosen, come here
-
-	tkMessageBox.showinfo( "Fuck You", "Turning Off...")
+	top.destroy()
+	
+	#tkMessageBox.showinfo( "Fuck You", "Turning Off...")
  
  	PowerDown = 1				# Set Power Down flag to 1
 								# Write Power Down flag to controller
@@ -354,6 +357,10 @@ Finish    = Tkinter.Button(top, text = "Finish",            command = Welcome)
 top.title("AHA! Welcome")
 top.geometry("480x272")
 top.configure(background='white')
+
+top.bind("<Button-1>", callback)
+top.bind("<Key>", key)
+top.focus_set()
 
 Start.pack()					# Whole program begins here where the Start button appears alone
 
