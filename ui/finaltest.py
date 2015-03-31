@@ -8,7 +8,7 @@ from PIL import Image
 import threading
 import time
 from sys import stdin
-
+import os
 
 ExitFlag = False
 userinput = ""
@@ -24,22 +24,24 @@ T 	= Text(top, height=2, width=30)
 top.focus_set() # <-- move focus to this widget
 top.bind("<Escape>", lambda e: e.widget.quit())
 
-path1  = "CalibrateStep1.jpg"
-path2  = "CalibrateStep2.jpg"
-path3  = "CalibrateStep3.jpg"
-path4  = "CalibrateStep4.jpg"
-path5  = "StartUpScreen.jpg"
-path6  = "0.jpg"
-path7  = "1.jpg"
-path8  = "2.jpg"
-path9  = "3.jpg"
-path10 = "Winner.jpg"
-path11 = "Loser.jpg"
-path12 = "Score.jpg"
-path13  = "0.jpg"
-path14  = "1.jpg"
-path15  = "2.jpg"
-path16  = "3.jpg"
+ui_path = os.path.dirname(os.path.realpath(__file__))
+
+path1   = ui_path + "/CalibrateStep1.jpg"
+path2   = ui_path + "/CalibrateStep2.jpg"
+path3   = ui_path + "/CalibrateStep3.jpg"
+path4   = ui_path + "/CalibrateStep4.jpg"
+path5   = ui_path + "/StartUpScreen.jpg"
+path6   = ui_path + "/0.jpg"
+path7   = ui_path + "/1.jpg"
+path8   = ui_path + "/2.jpg"
+path9   = ui_path + "/3.jpg"
+path10  = ui_path + "/Winner.jpg"
+path11  = ui_path + "/Loser.jpg"
+path12  = ui_path + "/Score.jpg"
+path13  = ui_path + "/0.jpg"
+path14  = ui_path + "/1.jpg"
+path15  = ui_path + "/2.jpg"
+path16  = ui_path + "/3.jpg"
 
 img1 	= ImageTk.PhotoImage(Image.open(path1))
 img2 	= ImageTk.PhotoImage(Image.open(path2))
