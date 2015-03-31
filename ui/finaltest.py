@@ -16,6 +16,7 @@ userScore = 0
 AHAScore = 0
 
 top = Tkinter.Tk()              # I dunno what this does... but it makes everything work
+top.overrideredirect(1)
 T 	= Text(top, height=2, width=30)
 
 path1  = "CalibrateStep1.jpg"
