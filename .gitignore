@@ -16,6 +16,7 @@
 
 # Executables
 test
+scoring
 *.bin
 *.elf
 *.hex
