@@ -16,7 +16,7 @@ userScore = 0
 AHAScore = 0
 
 top = Tkinter.Tk()              # I dunno what this does... but it makes everything work
-w, h = top.winfo_screenwidth(), root.winfo_screenheight()
+w, h = top.winfo_screenwidth(), top.winfo_screenheight()
 top.overrideredirect(1)
 top.geometry("%dx%d+0+0" % (w, h))
 T 	= Text(top, height=2, width=30)
