@@ -6,11 +6,11 @@ PCFLAGS		:= --cflags --libs
 PCPKGS		:= glib-2.0
 CPPFLAGS += $(shell $(PC) $(PCFLAGS) $(PCPKGS))
 
-all: test
+all: scoring
 
-test: test.cpp
+scoring: scoring.cpp
 	$(CXX) $(CPPFLAGS) $< -o $@
 
 .PHONY: clean
 clean:
-	rm -rf *.o test
+	rm -rf *.o scoring
