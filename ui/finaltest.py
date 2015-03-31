@@ -6,6 +6,14 @@ import PIL
 from PIL import ImageTk
 from PIL import Image
 import threading
+import time
+from sys import stdin
+
+
+ExitFlag = False
+userinput = ""
+userScore = 0
+AHAScore = 0
 
 top = Tkinter.Tk()              # I dunno what this does... but it makes everything work
 T 	= Text(top, height=2, width=30)
@@ -64,8 +72,31 @@ panel16 = Tkinter.Label(top, image = img16)
 PowerDown = 0                   # Power down value to write to controller for system shut off
 Calibrate = 0					# Calibrate value to write to controller for calibration start
 mode 	  = 0					# Mode value to write to controller for difficulty setting set up
-AHAscore  = 0
-Yourscore = 0
+
+
+def BG_Thread():
+	print "thread spawned"
+	global userinput
+	global userScore
+	userScore = 0
+	global AHAScore
+	AHAScore = 0
+
+	while True:
+		#print "meow"
+		userinput = stdin.readline()
+		print userinput
+
+		if "u" in userinput:
+			userScore = userScore + 1
+		if "a" in userinput:
+			AHAScore = AHAScore + 1
+
+		time.sleep(0.05)
+
+		if(userScore == 3 or AHAScore == 3):
+			print "exiting thread"
+			break
 
 def Welcome():					# Window that appears after initialization
 	Start.pack_forget()			# Wipe all buttons from previous window
@@ -75,6 +106,8 @@ def Welcome():					# Window that appears after initialization
 	Back1.pack_forget()
 	panel4.pack_forget()
 	Finish.pack_forget()
+	panel10.pack_forget()
+	panel11.pack_forget()
 
 	panel5.pack()
 	Cal.pack()					# Set buttons for Calibrate, Turn Off, and Choose Difficulty options
@@ -202,50 +235,97 @@ def Playtime():					# When Start Game button is triggered, come here
 	top.title("Scores")
 
 	panel12.pack()
+
 	panel6.pack()
 	panel13.pack()
+
 	panel13.place(x = 250, y = 125)
 	panel6.place(x = 40, y = 125)
+
+	time.sleep(1)
+
 	Scores()
 
-def Scores():
+def Scores(): #change
+
+	#start the scorekeeping thread
+	global thread
+	thread = threading.Thread(target=BG_Thread)
+	thread.start()
+
+	loopy = top.after(1000,checkScores)
 
 
+def checkScores():
+	global thread
+	global ExitFlag
 
+	print "aha score: ", AHAScore, "userScore", userScore
+	loopy = top.after(2000,checkScores)
 
+	if AHAScore == 0:
+		#display 0
+		panel13.configure(image = img6)
 
+	if AHAScore == 1:
+		#display 0
+		panel13.configure(image = img7)
 
-	if AHAscore == 3:
-		Loser()
+	if AHAScore == 2:
+		panel13.configure(image = img8)
+		#display 0
 
-	if Yourscore == 0:
-		Winner()
+	if userScore == 0:
+		#display 0
+		panel6.configure(image = img6)
+
+	if userScore == 1:
+		#display 0
+		panel6.configure(image = img7)
+
+	if userScore == 2:
+		panel6.configure(image = img8)
+		#display 0
+
+	if AHAScore == 3:
+		panel13.configure(image = img9)
+		#display 0
+		if ExitFlag:
+			top.after_cancel(loopy)
+			thread.join()
+			Loser()
+		ExitFlag = True
+
+	if userScore == 3:
+		panel6.configure(image = img9)
+		#display 0
+		if ExitFlag:
+			top.after_cancel(loopy)
+			thread.join()
+			Winner()
+		ExitFlag = True
+
 
 def Winner():
-		panel6.destroy()
-		panel7.destroy()
-		panel8.destroy()
-		panel9.destroy()
-		panel12.destroy()
-		panel13.destroy()
-		panel14.destroy()
-		panel15.destroy()
-		panel16.destroy()
+		panel13.place(x = 1000, y = 1000) #user score
+		panel6.place(x = 1000, y = 1000)	#aha score
+		
+		panel12.pack_forget()
 
 		panel10.pack()
 
+		Start.pack()
+
 def Loser():
-		panel6.destroy()
-		panel7.destroy()
-		panel8.destroy()
-		panel9.destroy()
-		panel12.destroy()
-		panel13.destroy()
-		panel14.destroy()
-		panel15.destroy()
-		panel16.destroy()
+		panel13.place(x = 1000, y = 1000) #user score
+		panel6.place(x = 1000, y = 1000)	#aha score
+		
+		panel12.pack_forget()
 
 		panel11.pack()
+
+		Start.pack()
+
 
 Cal       = Tkinter.Button(top, text = "Calibrate",         command = Calibrate)			# Button set up
 OFF       = Tkinter.Button(top, text = "Turn Off",          command = turnOff)
