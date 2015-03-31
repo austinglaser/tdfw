@@ -350,7 +350,7 @@ Next4     = Tkinter.Button(top, text = "Next",              command = Next4)
 Finish    = Tkinter.Button(top, text = "Finish",            command = Welcome)
 
 top.title("AHA! Welcome")
-top.geometry("400x272")
+top.geometry("480x272")
 top.configure(background='white')
 
 Start.pack()					# Whole program begins here where the Start button appears alone
