@@ -10,6 +10,7 @@ import threading
 import time
 from sys import stdin
 import os
+import select
 
 ExitFlag = False
 userinput = ""
@@ -109,6 +110,9 @@ def BG_Thread():
 	userScore = 0
 	global AHAScore
 	AHAScore = 0
+
+	while len(select.select([sys.stdin.fileno()], [], [], 0.0)[0])>0:
+		os.read(sys.stdin.fileno(), 4096)
 
 	while True:
 		#print "meow"
