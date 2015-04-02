@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 import Tkinter
 from Tkinter import *
 import tkMessageBox
@@ -16,13 +16,8 @@ userScore = 0
 AHAScore = 0
 
 top = Tkinter.Tk()              # I dunno what this does... but it makes everything work
-#w, h = top.winfo_screenwidth(), top.winfo_screenheight()
-#top.overrideredirect(1)
-#top.geometry("%dx%d+0+0" % (w, h))
+top.overrideredirect(1)
 T 	= Text(top, height=2, width=30)
-
-top.focus_set() # <-- move focus to this widget
-top.bind("<Escape>", lambda e: e.widget.quit())
 
 ui_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -42,18 +37,6 @@ path13  = ui_path + "/0.jpg"
 path14  = ui_path + "/1.jpg"
 path15  = ui_path + "/2.jpg"
 path16  = ui_path + "/3.jpg"
-path17  = ui_path + "/StartButton.jpg"
-path18  = ui_path + "/easy.png"
-path19  = ui_path + "/med.png"
-path20  = ui_path + "/hard.png"
-path21  = ui_path + "/back.png"
-path22  = ui_path + "/next.png"
-path23  = ui_path + "/calibrate.png"
-path24  = ui_path + "/off.png"
-path25  = ui_path + "/play.png"
-path26  = ui_path + "/done.png"
-path27  = ui_path + "/nextcalibrate.png"
-path28  = ui_path + "/start2.png"
 
 img1 	= ImageTk.PhotoImage(Image.open(path1))
 img2 	= ImageTk.PhotoImage(Image.open(path2))
@@ -71,18 +54,6 @@ img13 	= ImageTk.PhotoImage(Image.open(path13))
 img14 	= ImageTk.PhotoImage(Image.open(path14))
 img15 	= ImageTk.PhotoImage(Image.open(path15))
 img16 	= ImageTk.PhotoImage(Image.open(path16))
-StartButton = ImageTk.PhotoImage(Image.open(path17))
-EasyMode	= ImageTk.PhotoImage(Image.open(path18))
-MediumMode	= ImageTk.PhotoImage(Image.open(path19))
-HardMode	= ImageTk.PhotoImage(Image.open(path20))
-BackPanel	= ImageTk.PhotoImage(Image.open(path21))
-NextPanel    = ImageTk.PhotoImage(Image.open(path22))
-calibrateimage   = ImageTk.PhotoImage(Image.open(path23))
-Off    		= ImageTk.PhotoImage(Image.open(path24))
-Difficulty  = ImageTk.PhotoImage(Image.open(path25))
-Done		= ImageTk.PhotoImage(Image.open(path26))
-NextCalibrate		= ImageTk.PhotoImage(Image.open(path27))
-ReturntoStart		= ImageTk.PhotoImage(Image.open(path28))
 
 panel1 	= Tkinter.Label(top, image = img1)
 panel2 	= Tkinter.Label(top, image = img2)
@@ -102,9 +73,16 @@ panel15 = Tkinter.Label(top, image = img15)
 panel16 = Tkinter.Label(top, image = img16)
 
 PowerDown = 0                   # Power down value to write to controller for system shut off
-Calibrate1 = 0					# Calibrate value to write to controller for calibration start
+Calibrate = 0					# Calibrate value to write to controller for calibration start
 mode 	  = 0					# Mode value to write to controller for difficulty setting set up
 
+def key(event):
+    print "pressed", repr(event.char)
+    if event.char == "q":
+    	top.destroy()
+
+def callback(event):
+    print "clicked at", event.x, event.y
 
 def BG_Thread():
 	print "thread spawned"
@@ -131,32 +109,31 @@ def BG_Thread():
 			break
 
 def Welcome():					# Window that appears after initialization
-	Start.place_forget()			# Wipe all buttons from previous window
-	Easy.place_forget()
-	Med.place_forget()
-	Hard.place_forget()
-	Back1.place_forget()
+	Start.pack_forget()			# Wipe all buttons from previous window
+	Easy.pack_forget()
+	Med.pack_forget()
+	Hard.pack_forget()
+	Back1.pack_forget()
 	panel4.pack_forget()
-	Finish.place_forget()
+	Finish.pack_forget()
 	panel10.pack_forget()
 	panel11.pack_forget()
 
-	Cal.place(x = 0, y = 0)					# Set buttons for Calibrate, Turn Off, and Choose Difficulty options
-	Cal.config(image = calibrateimage)
-	OFF.place(x = 240, y = 0)
-	OFF.config(image = Off)
-	Dif.place(x = 120, y = 136)
-	Dif.config(image = Difficulty)
+	panel5.pack()
+	Cal.pack()					# Set buttons for Calibrate, Turn Off, and Choose Difficulty options
+	OFF.pack()
+	Dif.pack()
 	top.title("Welcome")
 
 def Calibrate():				# When Calibrate button is triggered, come here 
+    Calibrate = 1
 
-    Cal.place_forget()			# Wipe all buttons from previous window
-    OFF.place_forget()
-    Dif.place_forget()
+    Cal.pack_forget()			# Wipe all buttons from previous window
+    OFF.pack_forget()
+    Dif.pack_forget()
+    panel5.pack_forget()
 
-    Next1.place(x = 120, y = 100)
-    Next1.config(image = NextPanel)
+    Next1.pack()
     top.title("Calibration")
 
     T.pack()
@@ -165,120 +142,107 @@ def Calibrate():				# When Calibrate button is triggered, come here
 
 
 def Next1():
-	Next1.place_forget()
+	Next1.pack_forget()
 	T.delete(1.0, END)
 	T.pack_forget()
 
-	Next2.place(x = 173, y = 200)
-	Next2.config(image = NextCalibrate)
+	Next2.pack()
 
 	top.title("Step 1")
 	panel1.pack()
 
 def Next2():
-	Next2.place_forget()
+	Next2.pack_forget()
 	panel1.pack_forget()
 
-	Next3.place(x = 173, y = 200)
-	Next3.config(image = NextCalibrate)
+	Next3.pack()
 
 	top.title("Step 2")
 	panel2.pack()
 
 
 def Next3():
-	Next3.place_forget()
+	Next3.pack_forget()
 	panel2.pack_forget()
 
-	Next4.place(x = 173, y = 200)
-	Next4.config(image = NextCalibrate)
+	Next4.pack()
 
 	top.title("Step 3")
 	panel3.pack()
 
 def Next4():
-	Next4.place_forget()
+	Next4.pack_forget()
 	panel3.pack_forget()
 
-	Finish.place(x = 173, y = 200)
-	Finish.config(image = Done)
+	Finish.pack()
 
 	top.title("Step 4")
 	panel4.pack()
 
 def turnOff():					# When Turn Off button is chosen, come here
-
-	tkMessageBox.showinfo( "Shut Down", "Turning Off...")
+	top.destroy()
+	
+	#tkMessageBox.showinfo( "Fuck You", "Turning Off...")
  
  	PowerDown = 1				# Set Power Down flag to 1
 								# Write Power Down flag to controller
 
 def DifficultySetting():		# When Choose Difficulty button is triggered, come here
-	Cal.place_forget()			# Wipe all buttons from previous window
-	OFF.place_forget()
-	Dif.place_forget()
-	Back2.place_forget()
-	StartGame.place_forget()
+	Cal.pack_forget()			# Wipe all buttons from previous window
+	OFF.pack_forget()
+	Dif.pack_forget()
+	Back2.pack_forget()
+	StartGame.pack_forget()
+	panel5.pack_forget()
 
 	top.title("Choose a Level")
-	Easy.place(x = 0, y = 0)
-	Easy.config(image = EasyMode)
-	Med.place(x = 240, y = 0)
-	Med.config(image = MediumMode)
-	Hard.place(x = 0, y = 136)
-	Hard.config(image = HardMode)
-	Back1.place(x = 240, y = 136)
-	Back1.config(image = BackPanel)				# Back option returns to Welcome Menu
+	Easy.pack()
+	Med.pack()
+	Hard.pack()
+	Back1.pack()				# Back option returns to Welcome Menu
 
 def stage1():					# When Easy button is triggered, come here
-	Easy.place_forget()			# Wipe all buttons from previous window
-	Med.place_forget()
-	Hard.place_forget()
-	Back1.place_forget()
+	Easy.pack_forget()			# Wipe all buttons from previous window
+	Med.pack_forget()
+	Hard.pack_forget()
+	Back1.pack_forget()
 
 	mode = 1					# Set Mode flag to 1
 								# Write Mode flag to controller
 
 	top.title("Ready to Play?")
-	StartGame.place(x = 0, y = 0)			# Set buttons for start game or go back
-	StartGame.config(image = Difficulty)
-	Back2.place(x = 240, y = 0)
-	Back2.config(image = BackPanel)
-
+	StartGame.pack()			# Set buttons for start game or go back
+	Back2.pack()
 
 def stage2():					# When Medium button is triggered, come here
-	Easy.place_forget()			# Wipe all buttons from previous window
-	Med.place_forget()
-	Hard.place_forget()
-	Back1.place_forget()
+	Easy.pack_forget()			# Wipe all buttons from previous window
+	Med.pack_forget()
+	Hard.pack_forget()
+	Back1.pack_forget()
 
 	mode = 2					# Set Mode flag to 2
 								# Write Mode flag to controller
 
 	top.title("Ready to Play?")
-	StartGame.place(x = 0, y = 0)			# Set buttons for start game or go back
-	StartGame.config(image = Difficulty)
-	Back2.place(x = 240, y = 0)
-	Back2.config(image = BackPanel)
+	StartGame.pack()			# Set buttons for start game or go back
+	Back2.pack()
 
 def stage3():					# When Hard button is triggered, come here
-	Easy.place_forget()			# Wipe all buttons from previous window 
-	Med.place_forget()
-	Hard.place_forget()
-	Back1.place_forget()
+	Easy.pack_forget()			# Wipe all buttons from previous window 
+	Med.pack_forget()
+	Hard.pack_forget()
+	Back1.pack_forget()
 
 	mode = 3					# Set Mode flag to 3
 								# Write Mode flag to controller
 
 	top.title("Ready to Play?")
-	StartGame.place(x = 0, y = 0)			# Set buttons for start game or go back
-	StartGame.config(image = Difficulty)
-	Back2.place(x = 240, y = 0)
-	Back2.config(image = BackPanel)				
+	StartGame.pack()			# Set buttons for start game or go back
+	Back2.pack()				
 
 def Playtime():					# When Start Game button is triggered, come here
-	Back2.place_forget()			# Wipe all buttons from previous window
-	StartGame.place_forget()
+	Back2.pack_forget()			# Wipe all buttons from previous window
+	StartGame.pack_forget()
 	top.title("Scores")
 
 	panel12.pack()
@@ -361,8 +325,7 @@ def Winner():
 
 		panel10.pack()
 
-		Start.place(x = 200, y = 220)
-		Start.config(image = ReturntoStart)
+		Start.pack()
 
 def Loser():
 		panel13.place(x = 1000, y = 1000) #user score
@@ -372,8 +335,7 @@ def Loser():
 
 		panel11.pack()
 
-		Start.place(x = 200, y = 220)
-		Start.config(image = ReturntoStart)
+		Start.pack()
 
 
 Cal       = Tkinter.Button(top, text = "Calibrate",         command = Calibrate)			# Button set up
@@ -396,7 +358,10 @@ top.title("AHA! Welcome")
 top.geometry("480x272")
 top.configure(background='white')
 
-Start.place(x = 10, y = 0)					# Whole program begins here where the Start button appears alone
-Start.config(image = StartButton)
+top.bind("<Button-1>", callback)
+top.bind("<Key>", key)
+top.focus_set()
+
+Start.pack()					# Whole program begins here where the Start button appears alone
 
 top.mainloop()
