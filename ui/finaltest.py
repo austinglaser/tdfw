@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#THIS IS FOR REAL
 import Tkinter
 from Tkinter import *
 import tkMessageBox
@@ -16,13 +17,8 @@ userScore = 0
 AHAScore = 0
 
 top = Tkinter.Tk()              # I dunno what this does... but it makes everything work
-#w, h = top.winfo_screenwidth(), top.winfo_screenheight()
-#top.overrideredirect(1)
-#top.geometry("%dx%d+0+0" % (w, h))
+top.overrideredirect(1)
 T 	= Text(top, height=2, width=30)
-
-top.focus_set() # <-- move focus to this widget
-top.bind("<Escape>", lambda e: e.widget.quit())
 
 ui_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -207,8 +203,7 @@ def Next4():
 	panel4.pack()
 
 def turnOff():					# When Turn Off button is chosen, come here
-
-	tkMessageBox.showinfo( "Shut Down", "Turning Off...")
+	top.destroy()
  
  	PowerDown = 1				# Set Power Down flag to 1
 								# Write Power Down flag to controller
@@ -395,6 +390,8 @@ Finish    = Tkinter.Button(top, text = "Finish",            command = Welcome)
 top.title("AHA! Welcome")
 top.geometry("480x272")
 top.configure(background='white')
+
+top.focus_set()
 
 Start.place(x = 10, y = 0)					# Whole program begins here where the Start button appears alone
 Start.config(image = StartButton)
