@@ -203,8 +203,10 @@ def Next4():
 	panel4.pack()
 
 def turnOff():					# When Turn Off button is chosen, come here
+	os.system(ui_path + "/off.sh")
+
 	top.destroy()
- 
+	
  	PowerDown = 1				# Set Power Down flag to 1
 								# Write Power Down flag to controller
 
