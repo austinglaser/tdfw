@@ -331,7 +331,7 @@ def checkScores():
 		panel6.configure(image = img8)
 		#display 0
 
-	if AHAScore == 3:
+	if AHAScore >= 3:
 		panel13.configure(image = img9)
 		#display 0
 		if ExitFlag:
@@ -340,7 +340,7 @@ def checkScores():
 			Loser()
 		ExitFlag = True
 
-	if userScore == 3:
+	if userScore >= 3:
 		panel6.configure(image = img9)
 		#display 0
 		if ExitFlag:
