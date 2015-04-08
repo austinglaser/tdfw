@@ -91,7 +91,7 @@ typedef enum {
  * @brief   Control characters for serial communication
  */
 typedef enum {
-    SERIAL_START            = 'G',  /**< Start character for all transactions */
+    SERIAL_START            = 'M',  /**< Start character for all transactions */
     SERIAL_ON               = 'O',  /**< Board is powered and ready to recieve commands */
     SERIAL_PARAM            = 'R',  /**< Character to set parameters */
     SERIAL_PARAM_X          = 'X',  /**< Character to set x parameters */

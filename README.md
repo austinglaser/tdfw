@@ -13,21 +13,21 @@ table's mallet
 
 Mnemonic              | Syntax                            
 ----------------------|-----------------------------------
-Set pa**r**ameters    | `GR[X,Y]:<P>,<I>,<D>,<S>(,)\n`
-Set **l**ocation      | `GL:<X>,<Y>(,)\n`
-**S**tart             | `GS\n`
-Sto**p**              | `GP\n`
-**C**alibrate         | `GC\n`
-Calibration **d**one  | `GD\n`
+Set pa**r**ameters    | `MR[X,Y]:<P>,<I>,<D>,<S>(,)\n`
+Set **l**ocation      | `ML:<X>,<Y>(,)\n`
+**S**tart             | `MS\n`
+Sto**p**              | `MP\n`
+**C**alibrate         | `MC\n`
+Calibration **d**one  | `MD\n`
 
 ### Responses
 
 Mnemonic                    | Syntax                            
 ----------------------------|-----------------------------------
-MDS **o**n                  | `GO\n`
-Command **a**cknowledged    | `GA\n`
-**E**rror                   | `GE:<"error string">\n`
-Calibration l**i**mits      | `GI:<Xmin>,<Xmax>,<Ymin>,<Ymax>\n`
+MDS **o**n                  | `MO\n`
+Command **a**cknowledged    | `MA\n`
+**E**rror                   | `ME:<"error string">\n`
+Calibration l**i**mits      | `MI:<Xmin>,<Xmax>,<Ymin>,<Ymax>\n`
 
 ### Syntax Reference
 
