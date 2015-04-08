@@ -13,18 +13,18 @@ All other characters are required verbatim
 
 Mnemonic              | Syntax                            
 ----------------------|-----------------------------------
-set paRameters        | `GR[X,Y]:<P>,<I>,<D>,<S>(,)\n`
-set Location          | `GL:<X>,<Y>(,)\n`
-Start                 | `GS\n`
-stoP                  | `GP\n`
-Calibrate             | `GC\n`
-calibration Done      | `GD\n`
+Set pa**r**ameters    | `GR[X,Y]:<P>,<I>,<D>,<S>(,)\n`
+Set **l**ocation      | `GL:<X>,<Y>(,)\n`
+**S**tart             | `GS\n`
+Sto**p**              | `GP\n`
+**C**alibrate         | `GC\n`
+Calibration **d**one  | `GD\n`
 
 # MDS Responses
 
-Mnemonic              | Syntax                            
-----------------------|-----------------------------------
-mds On                | `GO\n`
-command Acknowledged  | `GA\n`
-Error                 | `GE:<"error string">\n`
-calibration lImits    | `GI:<Xmin>,<Xmax>,<Ymin>,<Ymax>\n`
+Mnemonic                    | Syntax                            
+----------------------------|-----------------------------------
+MDS **o**n                  | `GO\n`
+Command **a**cknowledged    | `GA\n`
+**E**rror                   | `GE:<"error string">\n`
+Calibration l**i**mits      | `GI:<Xmin>,<Xmax>,<Ymin>,<Ymax>\n`
