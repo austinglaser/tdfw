@@ -361,8 +361,8 @@ int main(void)
         // Get a character
         c = sdGet(&SD1);
 
-        // TODO: Take out echo?
-        ECHO(c);
+        // Echo
+        ECHO_CHAR(c);
 
         // Call the appropriate handler
         serial_mode_handler[serial_mode](c);
@@ -506,7 +506,7 @@ static void serial_mode_param_x_s_handler(uint8_t c)
         // If we had a trailing comma, get the next character
         if (c == ',') {
             c = sdGet(&SD1);
-            ECHO(c);
+            ECHO_CHAR(c);
         }
 
         if (c != '\r' && c != '\n') {
@@ -598,7 +598,7 @@ static void serial_mode_param_y_s_handler(uint8_t c)
         // If we had a trailing comma, get the next character
         if (c == ',') {
             c = sdGet(&SD1);
-            ECHO(c);
+            ECHO_CHAR(c);
         }
 
         if (c != '\r' && c != '\n') {
@@ -659,7 +659,7 @@ static void serial_mode_location_y_handler(uint8_t c)
         // If we had a trailing comma, get the next character
         if (c == ',') {
             c = sdGet(&SD1);
-            ECHO(c);
+            ECHO_CHAR(c);
         }
 
         if (c != '\r' && c != '\n') {

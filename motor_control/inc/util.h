@@ -15,6 +15,7 @@
 /* --- PUBLIC MACROS -------------------------------------------------------- */
 
 #define DEBUG FALSE
+#define ECHO  FALSE
 
 /**
  * @brief   Macro which can be used similar to the built-in printf, without
@@ -22,16 +23,21 @@
  */
 #define     PRINTF(...)         chprintf((BaseSequentialStream*) &SD1, __VA_ARGS__)
 
-#define     ECHO(c) \
-    do { \
-        if ((c) == '\r' || c == '\n') { \
-            sdPut(&SD1, '\r'); \
-            sdPut(&SD1, '\n'); \
-        } \
-        else { \
-            sdPut(&SD1, c); \
-        } \
-    } while (0)
+#if ECHO == TRUE
+    #define     ECHO_CHAR(c) \
+        do { \
+            if ((c) == '\r' || c == '\n') { \
+                sdPut(&SD1, '\r'); \
+                sdPut(&SD1, '\n'); \
+            } \
+            else { \
+                sdPut(&SD1, c); \
+            } \
+        } while (0)
+#else
+    #define     ECHO_CHAR(...)
+#endif
+
 
 
 #if DEBUG == TRUE
