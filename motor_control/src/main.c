@@ -103,6 +103,7 @@ typedef enum {
     SERIAL_CALIBRATE_DONE   = 'D',  /**< Character to finish calibrating */
     SERIAL_ACK              = 'A',  /**< Ack character */
     SERIAL_ERROR            = 'E',  /**< Error character */
+    SERIAL_CALIBRATE_LIMITS = 'I',  /**< Character to indicate calibration values */
 } serial_char_t;
 
 /**
@@ -759,7 +760,7 @@ static void serial_mode_calibrate_done_handler(uint8_t c)
 
         // Otherwise report back calibration values
         else {
-            PRINTF("%c%c:%f,%f,%f,%f\r\n", SERIAL_START, SERIAL_CALIBRATE, lower_x, upper_x, lower_y, upper_y);
+            PRINTF("%c%c:%f,%f,%f,%f\r\n", SERIAL_START, SERIAL_CALIBRATE_LIMITS, lower_x, upper_x, lower_y, upper_y);
         }
 
         // Reset state machine
