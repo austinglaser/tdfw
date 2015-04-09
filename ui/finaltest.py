@@ -36,157 +36,138 @@ def main():
 	top.overrideredirect(1)
 	T 	= Text(top, height=2, width=30)
 	
+	global ui_path
 	ui_path = os.path.dirname(os.path.realpath(__file__))
 	
-	path1   = ui_path + "/CalibrateStep1.jpg"
-	path2   = ui_path + "/CalibrateStep2.jpg"
-	path3   = ui_path + "/CalibrateStep3.jpg"
-	path4   = ui_path + "/CalibrateStep4.jpg"
-	path5   = ui_path + "/StartUpScreen.jpg"
-	path6   = ui_path + "/0.jpg"
-	path7   = ui_path + "/1.jpg"
-	path8   = ui_path + "/2.jpg"
-	path9   = ui_path + "/3.jpg"
-	path10  = ui_path + "/Winner.jpg"
-	path11  = ui_path + "/Loser.jpg"
-	path12  = ui_path + "/Score.jpg"
-	path13  = ui_path + "/0.jpg"
-	path14  = ui_path + "/1.jpg"
-	path15  = ui_path + "/2.jpg"
-	path16  = ui_path + "/3.jpg"
-	path17  = ui_path + "/StartButton.jpg"
-	path18  = ui_path + "/easy.png"
-	path19  = ui_path + "/med.png"
-	path20  = ui_path + "/hard.png"
-	path21  = ui_path + "/back.png"
-	path22  = ui_path + "/next.png"
-	path23  = ui_path + "/calibrate.png"
-	path24  = ui_path + "/off.png"
-	path25  = ui_path + "/play.png"
-	path26  = ui_path + "/done.png"
-	path27  = ui_path + "/nextcalibrate.png"
-	path28  = ui_path + "/start2.png"
+	calibratestep1_img_path			= ui_path + "/CalibrateStep1.jpg"
+	calibratestep2_img_path   		= ui_path + "/CalibrateStep2.jpg"
+	calibratestep3_img_path   		= ui_path + "/CalibrateStep3.jpg"
+	calibratestep4_img_path   		= ui_path + "/CalibrateStep4.jpg"
+	startupscreen_img_path			= ui_path + "/StartUpScreen.jpg"
+	number0_img_path				= ui_path + "/0.jpg"
+	number1_img_path   				= ui_path + "/1.jpg"
+	number2_img_path   				= ui_path + "/2.jpg"
+	number3_img_path   				= ui_path + "/3.jpg"
+	winner_img_path					= ui_path + "/Winner.jpg"
+	loser_img_path					= ui_path + "/Loser.jpg"
+	score_img_path  				= ui_path + "/Score.jpg"
+	start_button_img_path			= ui_path + "/StartButton.jpg"
+	easy_button_img_path			= ui_path + "/easy.png"
+	med_button_img_path				= ui_path + "/med.png"
+	hard_button_img_path			= ui_path + "/hard.png"
+	back_button_img_path  			= ui_path + "/back.png"
+	next_button_img_path  			= ui_path + "/next.png"
+	calibrate_button_img_path		= ui_path + "/calibrate.png"
+	off_button_img_path				= ui_path + "/off.png"
+	difficulty_button_img_path		= ui_path + "/play.png"
+	done_button_img_path			= ui_path + "/done.png"
+	nextcalibrate_button_img_path	= ui_path + "/nextcalibrate.png"
+	returntostart_button_img_path	= ui_path + "/start2.png"
 
-	global img1
-	global img2
-	global img3
-	global img4
-	global img5
-	global img6
-	global img7
-	global img8
-	global img9
-	global img10
-	global img11
-	global img12
+	global calibratestep1_img
+	global calibratestep2_img
+	global calibratestep3_img
+	global calibratestep4_img
+	global startupscreen_img
+	global number0_img
+	global number1_img
+	global number2_img
+	global number3_img
+	global winner_img
+	global loser_img
+	global score_img
 	global img13
 	global img14
 	global img15
 	global img16
-	global StartButton
-	global EasyMode
-	global MediumMode
-	global HardMode
-	global BackPanel
-	global NextPanel
-	global calibrateimage
-	global Off
-	global Difficulty
-	global Done
-	global NextCalibrate
-	global ReturntoStart
-	img1			= ImageTk.PhotoImage(Image.open(path1))
-	img2 			= ImageTk.PhotoImage(Image.open(path2))
-	img3 			= ImageTk.PhotoImage(Image.open(path3))
-	img4 			= ImageTk.PhotoImage(Image.open(path4))
-	img5 			= ImageTk.PhotoImage(Image.open(path5))
-	img6 			= ImageTk.PhotoImage(Image.open(path6))
-	img7 			= ImageTk.PhotoImage(Image.open(path7))
-	img8 			= ImageTk.PhotoImage(Image.open(path8))
-	img9 			= ImageTk.PhotoImage(Image.open(path9))
-	img10 			= ImageTk.PhotoImage(Image.open(path10))
-	img11 			= ImageTk.PhotoImage(Image.open(path11))
-	img12 			= ImageTk.PhotoImage(Image.open(path12))
-	img13 			= ImageTk.PhotoImage(Image.open(path13))
-	img14 			= ImageTk.PhotoImage(Image.open(path14))
-	img15 			= ImageTk.PhotoImage(Image.open(path15))
-	img16 			= ImageTk.PhotoImage(Image.open(path16))
-	StartButton		= ImageTk.PhotoImage(Image.open(path17))
-	EasyMode		= ImageTk.PhotoImage(Image.open(path18))
-	MediumMode		= ImageTk.PhotoImage(Image.open(path19))
-	HardMode		= ImageTk.PhotoImage(Image.open(path20))
-	BackPanel		= ImageTk.PhotoImage(Image.open(path21))
-	NextPanel		= ImageTk.PhotoImage(Image.open(path22))
-	calibrateimage  = ImageTk.PhotoImage(Image.open(path23))
-	Off				= ImageTk.PhotoImage(Image.open(path24))
-	Difficulty  	= ImageTk.PhotoImage(Image.open(path25))
-	Done			= ImageTk.PhotoImage(Image.open(path26))
-	NextCalibrate	= ImageTk.PhotoImage(Image.open(path27))
-	ReturntoStart	= ImageTk.PhotoImage(Image.open(path28))
+	global start_button_img
+	global easy_button_img
+	global med_button_img
+	global hard_button_img
+	global back_button_img
+	global next_button_img
+	global calibrate_button_img
+	global off_button_img
+	global difficulty_button_img
+	global done_button_img
+	global nextcalibrate_button_img
+	global returntostart_button_img
+	calibratestep1_img			= ImageTk.PhotoImage(Image.open(calibratestep1_img_path))
+	calibratestep2_img 			= ImageTk.PhotoImage(Image.open(calibratestep2_img_path))
+	calibratestep3_img 			= ImageTk.PhotoImage(Image.open(calibratestep3_img_path))
+	calibratestep4_img 			= ImageTk.PhotoImage(Image.open(calibratestep4_img_path))
+	startupscreen_img 			= ImageTk.PhotoImage(Image.open(startupscreen_img_path))
+	number0_img					= ImageTk.PhotoImage(Image.open(number0_img_path))
+	number1_img 				= ImageTk.PhotoImage(Image.open(number1_img_path))
+	number2_img 				= ImageTk.PhotoImage(Image.open(number2_img_path))
+	number3_img 				= ImageTk.PhotoImage(Image.open(number3_img_path))
+	winner_img					= ImageTk.PhotoImage(Image.open(winner_img_path))
+	loser_img  					= ImageTk.PhotoImage(Image.open(loser_img_path))
+	score_img 					= ImageTk.PhotoImage(Image.open(score_img_path))
+	start_button_img			= ImageTk.PhotoImage(Image.open(start_button_img_path))
+	easy_button_img				= ImageTk.PhotoImage(Image.open(easy_button_img_path))
+	med_button_img				= ImageTk.PhotoImage(Image.open(med_button_img_path))
+	hard_button_img				= ImageTk.PhotoImage(Image.open(hard_button_img_path))
+	back_button_img				= ImageTk.PhotoImage(Image.open(back_button_img_path))
+	next_button_img				= ImageTk.PhotoImage(Image.open(next_button_img_path))
+	calibrate_button_img		= ImageTk.PhotoImage(Image.open(calibrate_button_img_path))
+	off_button_img				= ImageTk.PhotoImage(Image.open(off_button_img_path))
+	difficulty_button_img		= ImageTk.PhotoImage(Image.open(difficulty_button_img_path))
+	done_button_img				= ImageTk.PhotoImage(Image.open(done_button_img_path))
+	nextcalibrate_button_img	= ImageTk.PhotoImage(Image.open(nextcalibrate_button_img_path))
+	returntostart_button_img	= ImageTk.PhotoImage(Image.open(returntostart_button_img_path))
 
-	global panel1
-	global panel2
-	global panel3
-	global panel4
-	global panel5
-	global panel6
-	global panel7
-	global panel8
-	global panel9
-	global panel10
-	global panel11
-	global panel12
-	global panel13
-	global panel14
-	global panel15
-	global panel16
-	panel1 	= Tkinter.Label(top, image = img1)
-	panel2 	= Tkinter.Label(top, image = img2)
-	panel3 	= Tkinter.Label(top, image = img3)
-	panel4 	= Tkinter.Label(top, image = img4)
-	panel5 	= Tkinter.Label(top, image = img5)
-	panel6 	= Tkinter.Label(top, image = img6)
-	panel7 	= Tkinter.Label(top, image = img7)
-	panel8 	= Tkinter.Label(top, image = img8)
-	panel9 	= Tkinter.Label(top, image = img9)
-	panel10 = Tkinter.Label(top, image = img10)
-	panel11 = Tkinter.Label(top, image = img11)
-	panel12 = Tkinter.Label(top, image = img12)
-	panel13 = Tkinter.Label(top, image = img13)
-	panel14 = Tkinter.Label(top, image = img14)
-	panel15 = Tkinter.Label(top, image = img15)
-	panel16 = Tkinter.Label(top, image = img16)
+	global calibratestep1_panel
+	global calibratestep2_panel
+	global calibratestep3_panel
+	global calibratestep4_panel
+	global startup_panel
+	global aha_number_panel
+	global winner_panel
+	global loser_panel
+	global score_panel
+	global user_number_panel
+	calibratestep1_panel	= Tkinter.Label(top, image = calibratestep1_img)
+	calibratestep2_panel 	= Tkinter.Label(top, image = calibratestep2_img)
+	calibratestep3_panel 	= Tkinter.Label(top, image = calibratestep3_img)
+	calibratestep4_panel 	= Tkinter.Label(top, image = calibratestep4_img)
+	startup_panel			= Tkinter.Label(top, image = startupscreen_img)
+	aha_number_panel		= Tkinter.Label(top, image = number0_img)
+	user_number_panel		= Tkinter.Label(top, image = number0_img)
+	winner_panel			= Tkinter.Label(top, image = winner_img)
+	loser_panel				= Tkinter.Label(top, image = loser_img)
+	score_panel				= Tkinter.Label(top, image = score_img)
 
-	global Cal
-	global OFF
-	global Dif
-	global Easy
-	global Med
-	global Hard
-	global Back1
-	global Back2
-	global Start
-	global StartGame
-	global Next1
-	global Next2
-	global Next3
-	global Next4
-	global Finish
-	Cal       = Tkinter.Button(top, text = "Calibrate",         command = Calibrate)			# Button set up
-	OFF       = Tkinter.Button(top, text = "Turn Off",          command = turnOff)
-	Dif       = Tkinter.Button(top, text = "Choose Difficulty", command = DifficultySetting)
-	Easy      = Tkinter.Button(top, text = "Easy Mode",         command = stage1)
-	Med       = Tkinter.Button(top, text = "Medium Mode",       command = stage2)
-	Hard      = Tkinter.Button(top, text = "Hard Mode",         command = stage3)
-	Back1     = Tkinter.Button(top, text = "Back",              command = Welcome)
-	Back2     = Tkinter.Button(top, text = "Back",              command = DifficultySetting)
-	Start     = Tkinter.Button(top, text = "Start",             command = Welcome)
-	StartGame = Tkinter.Button(top, text = "Play",              command = Playtime)
-	Next1     = Tkinter.Button(top, text = "Next",              command = Next1)
-	Next2     = Tkinter.Button(top, text = "Next",              command = Next2)
-	Next3     = Tkinter.Button(top, text = "Next",              command = Next3)
-	Next4     = Tkinter.Button(top, text = "Next",              command = Next4)
-	Finish    = Tkinter.Button(top, text = "Finish",            command = Welcome)
+	global calibrate_button
+	global off_button
+	global difficulty_button
+	global easy_button
+	global med_button
+	global hard_button
+	global backtowelcome_button
+	global backtodifficulty_button
+	global start_button
+	global startgame_button
+	global next1_button
+	global next2_button
+	global next3_button
+	global next4_button
+	global finish_button
+	calibrate_button		= Tkinter.Button(top, text = "Calibrate",         command = calibrate_start_screen)			# Button set up
+	off_button				= Tkinter.Button(top, text = "Turn Off",          command = turn_off)
+	difficulty_button   	= Tkinter.Button(top, text = "Choose Difficulty", command = difficulty_set_screen)
+	easy_button				= Tkinter.Button(top, text = "Easy Mode",         command = easy_ready_screen)
+	med_button				= Tkinter.Button(top, text = "Medium Mode",       command = med_ready_screen)
+	hard_button				= Tkinter.Button(top, text = "Hard Mode",         command = hard_ready_screen)
+	backtowelcome_button    = Tkinter.Button(top, text = "Back",              command = welcome_screen)
+	backtodifficulty_button = Tkinter.Button(top, text = "Back",              command = difficulty_set_screen)
+	start_button			= Tkinter.Button(top, text = "Start",             command = welcome_screen)
+	startgame_button 		= Tkinter.Button(top, text = "Play",              command = score_screen)
+	next1_button     		= Tkinter.Button(top, text = "Next",              command = calibrate_step1_screen)
+	next2_button     		= Tkinter.Button(top, text = "Next",              command = calibrate_step2_screen)
+	next3_button     		= Tkinter.Button(top, text = "Next",              command = calibrate_step3_screen)
+	next4_button     		= Tkinter.Button(top, text = "Next",              command = calibrate_step4_screen)
+	finish_button    		= Tkinter.Button(top, text = "Finish",            command = welcome_screen)
 	
 	top.title("AHA! Welcome")
 	top.geometry("480x272")
@@ -194,13 +175,13 @@ def main():
 	
 	top.focus_set()
 	
-	Start.place(x = 10, y = 0)					# Whole program begins here where the Start button appears alone
-	Start.config(image = StartButton)
+	start_button.place(x = 10, y = 0)					# Whole program begins here where the Start button appears alone
+	start_button.config(image = start_button_img)
 	
 	top.mainloop()
 
 
-def BG_Thread():
+def score_read():
 	print "thread spawned"
 	global userinput
 	global userScore
@@ -228,51 +209,51 @@ def BG_Thread():
 			print "exiting thread"
 			break
 
-def Welcome():					# Window that appears after initialization
-	global Start
-	global Easy
-	global Med
-	global Hard
-	global Back1
-	global panel4
-	global Finish
-	global panel10
-	global panel11
-	Start.place_forget()			# Wipe all buttons from previous window
-	Easy.place_forget()
-	Med.place_forget()
-	Hard.place_forget()
-	Back1.place_forget()
-	panel4.pack_forget()
-	Finish.place_forget()
-	panel10.pack_forget()
-	panel11.pack_forget()
+def welcome_screen():					# Window that appears after initialization
+	global start_button
+	global easy_button
+	global med_button
+	global hard_button
+	global backtowelcome_button
+	global calibratestep4_panel
+	global finish_button
+	global winner_panel
+	global loser_panel
+	start_button.place_forget()			# Wipe all buttons from previous window
+	easy_button.place_forget()
+	med_button.place_forget()
+	hard_button.place_forget()
+	backtowelcome_button.place_forget()
+	calibratestep4_panel.pack_forget()
+	finish_button.place_forget()
+	winner_panel.pack_forget()
+	loser_panel.pack_forget()
 
-	global Cal
-	global OFF
-	global Dif
+	global calibrate_button
+	global off_button
+	global difficulty_button
 	global top
-	Cal.place(x = 0, y = 0)					# Set buttons for Calibrate, Turn Off, and Choose Difficulty options
-	Cal.config(image = calibrateimage)
-	OFF.place(x = 240, y = 0)
-	OFF.config(image = Off)
-	Dif.place(x = 120, y = 136)
-	Dif.config(image = Difficulty)
+	calibrate_button.place(x = 0, y = 0)					# Set buttons for Calibrate, Turn off_button_img, and Choose difficulty_button_img options
+	calibrate_button.config(image = calibrate_button_img)
+	off_button.place(x = 240, y = 0)
+	off_button.config(image = off_button_img)
+	difficulty_button.place(x = 120, y = 136)
+	difficulty_button.config(image = difficulty_button_img)
 	top.title("Welcome")
 
-def Calibrate():				# When Calibrate button is triggered, come here 
-	global Cal
-	global OFF
-	global Dif
-	Cal.place_forget()			# Wipe all buttons from previous window
-	OFF.place_forget()
-	Dif.place_forget()
+def calibrate_start_screen():				# When Calibrate button is triggered, come here 
+	global calibrate_button
+	global off_button
+	global difficulty_button
+	calibrate_button.place_forget()			# Wipe all buttons from previous window
+	off_button.place_forget()
+	difficulty_button.place_forget()
 
-	global Next1
+	global next1_button
 	global top
 	global T
-	Next1.place(x = 120, y = 100)
-	Next1.config(image = NextPanel)
+	next1_button.place(x = 120, y = 100)
+	next1_button.config(image = next_button_img)
 	top.title("Calibration")
 
 	T.pack()
@@ -280,68 +261,69 @@ def Calibrate():				# When Calibrate button is triggered, come here
 	mainloop()
 
 
-def Next1():
-	global Next1
+def calibrate_step1_screen():
+	global next1_button
 	global T
-	Next1.place_forget()
+	next1_button.place_forget()
 	T.delete(1.0, END)
 	T.pack_forget()
 
-	global Next2
-	Next2.place(x = 173, y = 200)
-	Next2.config(image = NextCalibrate)
+	global next2_button
+	next2_button.place(x = 173, y = 200)
+	next2_button.config(image = nextcalibrate_button_img)
 
 	global top
-	global panel1
+	global calibratestep1_panel
 	top.title("Step 1")
-	panel1.pack()
+	calibratestep1_panel.pack()
 
-def Next2():
-	global Next2
-	global panel1
-	Next2.place_forget()
-	panel1.pack_forget()
+def calibrate_step2_screen():
+	global next2_button
+	global calibratestep1_panel
+	next2_button.place_forget()
+	calibratestep1_panel.pack_forget()
 
-	global Next3
-	Next3.place(x = 173, y = 200)
-	Next3.config(image = NextCalibrate)
+	global next3_button
+	next3_button.place(x = 173, y = 200)
+	next3_button.config(image = nextcalibrate_button_img)
 
 	global top
-	global panel2
+	global calibratestep2_panel
 	top.title("Step 2")
-	panel2.pack()
+	calibratestep2_panel.pack()
 
-def Next3():
-	global Next3
-	global panel2
-	Next3.place_forget()
-	panel2.pack_forget()
+def calibrate_step3_screen():
+	global next3_button
+	global calibratestep2_panel
+	next3_button.place_forget()
+	calibratestep2_panel.pack_forget()
 
-	global Next4
-	Next4.place(x = 173, y = 200)
-	Next4.config(image = NextCalibrate)
+	global next4_button
+	next4_button.place(x = 173, y = 200)
+	next4_button.config(image = nextcalibrate_button_img)
 
 	global top
-	global panel3
+	global calibratestep3_panel
 	top.title("Step 3")
-	panel3.pack()
+	calibratestep3_panel.pack()
 
-def Next4():
-	global Next4
-	global panel3
-	Next4.place_forget()
-	panel3.pack_forget()
+def calibrate_step4_screen():
+	global next4_button
+	global calibratestep3_panel
+	next4_button.place_forget()
+	calibratestep3_panel.pack_forget()
 
-	global Finish
-	Finish.place(x = 173, y = 200)
-	Finish.config(image = Done)
+	global finish_button
+	finish_button.place(x = 173, y = 200)
+	finish_button.config(image = done_button_img)
 
 	global top
-	global panel4
+	global calibratestep4_panel
 	top.title("Step 4")
-	panel4.pack()
+	calibratestep4_panel.pack()
 
-def turnOff():					# When Turn Off button is chosen, come here
+def turn_off():					# When Turn off_button_img button is chosen, come here
+	global ui_path
 	os.system(ui_path + "/off.sh")
 
 	global top
@@ -350,220 +332,219 @@ def turnOff():					# When Turn Off button is chosen, come here
 	global PowerDown
  	PowerDown = 1				# Set Power Down flag to 1
 
-def DifficultySetting():		# When Choose Difficulty button is triggered, come here
-	global Cal
-	global OFF
-	global Dif
-	global Back2
-	global StartGame
-	Cal.place_forget()			# Wipe all buttons from previous window
-	OFF.place_forget()
-	Dif.place_forget()
-	Back2.place_forget()
-	StartGame.place_forget()
+def difficulty_set_screen():		# When Choose difficulty_button_img button is triggered, come here
+	global calibrate_button
+	global off_button
+	global difficulty_button
+	global backtodifficulty_button
+	global startgame_button
+	calibrate_button.place_forget()			# Wipe all buttons from previous window
+	off_button.place_forget()
+	difficulty_button.place_forget()
+	backtodifficulty_button.place_forget()
+	startgame_button.place_forget()
 
 	global top
-	global Easy
-	global Easy
-	global Med
-	global Med
-	global Hard
-	global Hard
-	global Back1
-	global Back1
+	global easy_button
+	global med_button
+	global hard_button
+	global backtowelcome_button
 	top.title("Choose a Level")
-	Easy.place(x = 0, y = 0)
-	Easy.config(image = EasyMode)
-	Med.place(x = 240, y = 0)
-	Med.config(image = MediumMode)
-	Hard.place(x = 0, y = 136)
-	Hard.config(image = HardMode)
-	Back1.place(x = 240, y = 136)
-	Back1.config(image = BackPanel)				# Back option returns to Welcome Menu
+	easy_button.place(x = 0, y = 0)
+	easy_button.config(image = easy_button_img)
+	med_button.place(x = 240, y = 0)
+	med_button.config(image = med_button_img)
+	hard_button.place(x = 0, y = 136)
+	hard_button.config(image = hard_button_img)
+	backtowelcome_button.place(x = 240, y = 136)
+	backtowelcome_button.config(image = back_button_img)				# Back option returns to Welcome Menu
 
-def stage1():					# When Easy button is triggered, come here
-	global Easy
-	global Med
-	global Hard
-	global Back1
-	Easy.place_forget()			# Wipe all buttons from previous window
-	Med.place_forget()
-	Hard.place_forget()
-	Back1.place_forget()
+def easy_ready_screen():					# When Easy button is triggered, come here
+	global easy_button
+	global med_button
+	global hard_button
+	global backtowelcome_button
+	easy_button.place_forget()			# Wipe all buttons from previous window
+	med_button.place_forget()
+	hard_button.place_forget()
+	backtowelcome_button.place_forget()
 
 	global mode
 	mode = 1					# Set Mode flag to 1
 
 	global top
-	global StartGame
-	global Back2
+	global startgame_button
+	global backtodifficulty_button
 	top.title("Ready to Play?")
-	StartGame.place(x = 0, y = 0)			# Set buttons for start game or go back
-	StartGame.config(image = Difficulty)
-	Back2.place(x = 240, y = 0)
-	Back2.config(image = BackPanel)
+	startgame_button.place(x = 0, y = 0)			# Set buttons for start game or go back
+	startgame_button.config(image = difficulty_button_img)
+	backtodifficulty_button.place(x = 240, y = 0)
+	backtodifficulty_button.config(image = back_button_img)
 
 
-def stage2():					# When Medium button is triggered, come here
-	global Easy
-	global Med
-	global Hard
-	global Back1
-	Easy.place_forget()			# Wipe all buttons from previous window
-	Med.place_forget()
-	Hard.place_forget()
-	Back1.place_forget()
+def med_ready_screen():					# When Medium button is triggered, come here
+	global easy_button
+	global med_button
+	global hard_button
+	global backtowelcome_button
+	easy_button.place_forget()			# Wipe all buttons from previous window
+	med_button.place_forget()
+	hard_button.place_forget()
+	backtowelcome_button.place_forget()
 
 	global mode
 	mode = 2					# Set Mode flag to 2
 
 	global top
-	global StartGame
-	global Back2
+	global startgame_button
+	global backtodifficulty_button
 	top.title("Ready to Play?")
-	StartGame.place(x = 0, y = 0)			# Set buttons for start game or go back
-	StartGame.config(image = Difficulty)
-	Back2.place(x = 240, y = 0)
-	Back2.config(image = BackPanel)
+	startgame_button.place(x = 0, y = 0)			# Set buttons for start game or go back
+	startgame_button.config(image = difficulty_button_img)
+	backtodifficulty_button.place(x = 240, y = 0)
+	backtodifficulty_button.config(image = back_button_img)
 
-def stage3():					# When Hard button is triggered, come here
-	global Easy
-	global Med
-	global Hard
-	global Back1
-	Easy.place_forget()			# Wipe all buttons from previous window 
-	Med.place_forget()
-	Hard.place_forget()
-	Back1.place_forget()
+def hard_ready_screen():					# When Hard button is triggered, come here
+	global easy_button
+	global med_button
+	global hard_button
+	global backtowelcome_button
+	easy_button.place_forget()			# Wipe all buttons from previous window 
+	med_button.place_forget()
+	hard_button.place_forget()
+	backtowelcome_button.place_forget()
 
 	global mode
 	mode = 3					# Set Mode flag to 3
 
 	global top
-	global StartGame
-	global Back2
+	global startgame_button
+	global backtodifficulty_button
 	top.title("Ready to Play?")
-	StartGame.place(x = 0, y = 0)			# Set buttons for start game or go back
-	StartGame.config(image = Difficulty)
-	Back2.place(x = 240, y = 0)
-	Back2.config(image = BackPanel)				
+	startgame_button.place(x = 0, y = 0)			# Set buttons for start game or go back
+	startgame_button.config(image = difficulty_button_img)
+	backtodifficulty_button.place(x = 240, y = 0)
+	backtodifficulty_button.config(image = back_button_img)				
 
-def Playtime():					# When Start Game button is triggered, come here
-	global Back2
-	global StartGame
+def score_screen():					# When Start Game button is triggered, come here
+	global backtodifficulty_button
+	global startgame_button
 	global top
-	Back2.place_forget()			# Wipe all buttons from previous window
-	StartGame.place_forget()
+	backtodifficulty_button.place_forget()			# Wipe all buttons from previous window
+	startgame_button.place_forget()
 	top.title("Scores")
 
-	global panel12
-	panel12.pack()
+	global score_panel
+	score_panel.pack()
 
-	global panel6
-	global panel13
-	panel6.pack()
-	panel6.place(x = 40, y = 125)
-	panel13.pack()
-	panel13.place(x = 250, y = 125)
+	global aha_number_panel
+	global user_number_panel
+	aha_number_panel.pack()
+	aha_number_panel.place(x = 40, y = 125)
+	user_number_panel.pack()
+	user_number_panel.place(x = 250, y = 125)
 
 	time.sleep(1)
 
-	Scores()
+	start_scorekeeping()
 
-def Scores(): #change
+def start_scorekeeping(): #change
+
+	global scorekeeping_done
+	scorekeeping_done = False
 
 	#start the scorekeeping thread
-	global thread
-	thread = threading.Thread(target=BG_Thread)
-	thread.start()
+	global score_read_thread
+	score_read_thread = threading.Thread(target=score_read)
+	score_read_thread.start()
 
-	loopy = top.after(1000,checkScores)
+	loopy = top.after(1000,update_scores)
 
 
-def checkScores():
-	global thread
-	global ExitFlag
+def update_scores():
+	global score_read_thread
+	global scorekeeping_done
 	global top
 
 	print "aha score: ", AHAScore, "userScore", userScore
-	loopy = top.after(2000,checkScores)
+	loopy = top.after(2000,update_scores)
 
-	global panel13
-	global panel6
+	global user_number_panel
+	global aha_number_panel
 	if AHAScore == 0:
 		#display 0
-		panel13.configure(image = img6)
+		user_number_panel.configure(image = number0_img)
 
 	if AHAScore == 1:
 		#display 0
-		panel13.configure(image = img7)
+		user_number_panel.configure(image = number1_img)
 
 	if AHAScore == 2:
-		panel13.configure(image = img8)
+		user_number_panel.configure(image = number2_img)
 		#display 0
 
 	if userScore == 0:
 		#display 0
-		panel6.configure(image = img6)
+		aha_number_panel.configure(image = number0_img)
 
 	if userScore == 1:
 		#display 0
-		panel6.configure(image = img7)
+		aha_number_panel.configure(image = number1_img)
 
 	if userScore == 2:
-		panel6.configure(image = img8)
+		aha_number_panel.configure(image = number2_img)
 		#display 0
 
 	if AHAScore >= 3:
-		panel13.configure(image = img9)
+		user_number_panel.configure(image = number3_img)
 		#display 0
-		if ExitFlag:
+		if scorekeeping_done:
 			top.after_cancel(loopy)
-			thread.join()
-			Loser()
-		ExitFlag = True
+			score_read_thread.join()
+			loser_screen()
+		scorekeeping_done = True
 
 	if userScore >= 3:
-		panel6.configure(image = img9)
+		aha_number_panel.configure(image = number3_img)
 		#display 0
-		if ExitFlag:
+		if scorekeeping_done:
 			top.after_cancel(loopy)
-			thread.join()
-			Winner()
-		ExitFlag = True
+			score_read_thread.join()
+			winner_screen()
+		scorekeeping_done = True
 
 
-def Winner():
-		global panel13
-		global panel6
-		panel13.place(x = 1000, y = 1000) #user score
-		panel6.place(x = 1000, y = 1000)	#aha score
+def winner_screen():
+		global user_number_panel
+		global aha_number_panel
+		user_number_panel.place(x = 1000, y = 1000) #user score
+		aha_number_panel.place(x = 1000, y = 1000)	#aha score
 		
-		global panel12
-		panel12.pack_forget()
+		global score_panel
+		score_panel.pack_forget()
 
-		global panel10
-		panel10.pack()
+		global winner_panel
+		winner_panel.pack()
 
-		global Start
-		Start.place(x = 200, y = 220)
-		Start.config(image = ReturntoStart)
+		global start_button
+		start_button.place(x = 200, y = 220)
+		start_button.config(image = returntostart_button_img)
 
-def Loser():
-		global panel13
-		global panel6
-		panel13.place(x = 1000, y = 1000) #user score
-		panel6.place(x = 1000, y = 1000)	#aha score
+def loser_screen():
+		global user_number_panel
+		global aha_number_panel
+		user_number_panel.place(x = 1000, y = 1000) #user score
+		aha_number_panel.place(x = 1000, y = 1000)	#aha score
 		
-		global panel12
-		panel12.pack_forget()
+		global score_panel
+		score_panel.pack_forget()
 
-		global panel11
-		panel11.pack()
+		global loser_panel
+		loser_panel.pack()
 
-		global Start
-		Start.place(x = 200, y = 220)
-		Start.config(image = ReturntoStart)
+		global start_button
+		start_button.place(x = 200, y = 220)
+		start_button.config(image = returntostart_button_img)
 
 if __name__ == "__main__":
 	main()
