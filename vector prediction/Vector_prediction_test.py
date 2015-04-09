@@ -168,6 +168,7 @@ def checkCalibration(x_arr, y_arr, low, high):
 def doMDScalibration(debug):
 	retVal = (0, 0)
 	cap = cv2.VideoCapture(1) 
+
 	ret, frame = cap.read()
 
 	#unsharp mask
@@ -227,6 +228,11 @@ def doPuckCalibration(debug):
 	thresh_high = [0, 0, 0]
 
 	cap = cv2.VideoCapture(1)
+
+	cap.set(3,320)
+	cap.set(4,240)
+	cap.set(12,0.7)
+
 	ret, frame = cap.read()
 
 	#probably needs some contrast adjustment for this part....NOT ON FRAME_CROP!
@@ -264,12 +270,18 @@ def doPuckCalibration(debug):
 				#the image crop is centered at x,y and has a length of a*2
 				crop_center = (x, y)
  		
- 	if (cropWidth != 0) and crop_center != (0, 0):
+ 	if ((cropWidth != 0) and crop_center != (0, 0)) or (crop_y is 240):
  		#crop to the inner circle. BAM!
 
- 		#recreate the image with no contrast adjustments 
- 		frame_crop =  frame[0:crop_y, crop_x/3:2*crop_x/3]
- 		frame_crop =  frame_crop[y-cropWidth:y+cropWidth, x-cropWidth:x+cropWidth]
+ 		if crop_y == 240:
+ 			#recreate the image with no contrast adjustments 
+			frame_crop =  frame[0:crop_y, crop_x/3:2*crop_x/3]
+ 			frame_crop =  frame_crop[108-14:108+14, 55-14:55+14]
+
+ 		else:
+	 		#recreate the image with no contrast adjustments 
+	 		frame_crop =  frame[0:crop_y, crop_x/3:2*crop_x/3]
+	 		frame_crop =  frame_crop[y-cropWidth:y+cropWidth, x-cropWidth:x+cropWidth]
 
  		#unsharp mask
  		unsharp_mask = cv2.blur(frame_crop, (2, 2))
@@ -305,7 +317,7 @@ def doPuckCalibration(debug):
 	 				posY = int(dM01/dArea)
 	 				colors = [10, 10, 10, 10]
 
-	 				increment = 40;
+	 				increment = 30;
 	 				colors = frame_crop[posX, posY]
 	 				#make sure we won't overrun anything
 	 				for x in range(0,3):
@@ -318,9 +330,6 @@ def doPuckCalibration(debug):
 		 					thresh_low[x] = 0;
 		 				else:
 		 					thresh_low[x] = colors[x] - increment
-
-		 			#debug
-	 				#print thresh_low, thresh_high
 
 	 				#now do a second pass for better color detection
 	 				boundaries = [(thresh_low, thresh_high)] #absolute color detection
@@ -453,13 +462,13 @@ x_avg_5 = 0;
 y_avg_5 = 0;
 x_send = 0;
 y_send = 0;
-y_array =  [0] * 2;
-x_array =  [0] * 2;
+y_array =  [0] * 1;
+x_array =  [0] * 1;
 calFactor = 0;
 
 if (doCalibrate == False):
 	#it appears that image color is wrong for the green puck. hmmmm...
-	goal, ymax, ymin, low, high = 80.5, 76.0, 350.0, [115, 170, 65], [165, 220, 145]
+	goal, ymax, ymin, low, high = 80.5, 76.0, 350.0, [125, 225, 145], [175, 255, 185]
 
 y = [0] * 4;
 x = [0] * 4;
@@ -499,6 +508,7 @@ if doCalibrate:
 	doCountdown(5)
 
 	goal, ymax, ymin = calcPlayingField(x,y)
+	print goal, ymax, ymin
 	#some fancy way of checking the deltas for a resonable difference to determine success.
 	#also, check the puck color. it shouldn't be 0.
 
@@ -526,9 +536,6 @@ if (success == True or doCalibrate == False):
 	#cv2.imshow("final playing field", frame)
 	#cv2.waitKey(0)
 	#cap.release()
-
-	#open the video stream
-	cap = cv2.VideoCapture(1)
 	
 	#values which keep track of where the puck was last frame.
 	X_prev = 0
@@ -539,8 +546,19 @@ if (success == True or doCalibrate == False):
 
 	#for right now, fudge a cal factor
 	#calFactor = createCalFactor(y[0], y[1], 0.0, 574.0)
-	calFactor = createCalFactor(80, 342, 0.0, 574.0)
+	calFactor = createCalFactor(80/2, 342/2, 0.0, 574.0)
 	print calFactor
+
+	#low, high = doPuckCalibration(True) #this broke. :(
+	#print low, high
+
+	#open the video stream
+	cap = cv2.VideoCapture(1)
+
+	cap.set(3,320)
+	cap.set(4,240)
+	cap.set(5,125)
+	cap.set(12,0.8)
 
 	while(1):
 		try:
@@ -548,12 +566,12 @@ if (success == True or doCalibrate == False):
 
 			boundaries = [(low, high)]
 
-			locX, locY = locatePuck(boundaries, goal, ymax, ymin)
+			locX, locY = locatePuck(boundaries, goal/2, ymax/2, ymin/2)
 			
 			#done in main every frame
 			deltaX = locX - X_prev
 			deltaY = locY - Y_prev
-			xp,yp = predictPuck(goal, ymax, ymin, deltaX, deltaY)
+			xp,yp = predictPuck(goal/2, ymax/2, ymin/2, deltaX, deltaY)
 			#print 'predicton: ', xp, yp
 
 			#filter the predicted output. Do we actually want to use this?
@@ -562,19 +580,14 @@ if (success == True or doCalibrate == False):
 			x_send = x_avg_5
 			y_send = y_avg_5
 
-			#this will slow everything down. Debug images stuff
-			#current puck
-			#cv2.circle(output, (posX, posY), 2, (255, 255, 255), -1)
-			#predicted location
-			#cv2.circle(image, (xp, yp), 4, (0, 255, 0), -1)
-
 			X_prev = locX
 			Y_prev = locY
 
 			#the final point to send is in x,y format. 
 			#since we are always hovering at x = 50mm, we don't even need to calfactor anything.
 			#just send it 50mm unless the MDS is striking.
-			finalpt = pxToMM(y_send, calFactor, ymax)
+			#this is wrong.
+			finalpt = pxToMM(y_send, calFactor, ymax/2)
 
 			#write this to a logfile
 			logstr = str(finalpt) + '\n'
@@ -582,7 +595,7 @@ if (success == True or doCalibrate == False):
 
 			# show the images
 			cv2.circle(image, (int(x_send), int(y_send)), 4, (255, 255, 0), -1)
-			drawArena(goal, ymax, ymin, image)
+			drawArena(goal/2, ymax/2, ymin/2, image)
 			cv2.imshow("image", image)
 			#cv2.imshow("images", np.hstack([image, output]))
 			#video.write(image)
@@ -592,6 +605,7 @@ if (success == True or doCalibrate == False):
 			#send stop command
 			#close serial port
 			fo.close()
+			cap.release()
 			break
 
 	#del video # this makes a working AVI
@@ -608,4 +622,3 @@ else:
 		print "results of encoder calibration: "
 		print s
 		ser.close()
-
