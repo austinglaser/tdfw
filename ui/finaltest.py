@@ -13,22 +13,10 @@ import os
 import select
 
 def main():
-	global userinput
-	userinput = ""
-
 	global userScore
 	global AHAScore
 	userScore = 0
 	AHAScore = 0
-
-	global ExitFlag
-	global Powerdown
-	global Calibrate1
-	global mode
-	ExitFlag = False
-	PowerDown = 0                   # Power down value to write to controller for system shut off
-	Calibrate1 = 0					# Calibrate value to write to controller for calibration start
-	mode 	  = 0					# Mode value to write to controller for difficulty setting set up
 
 	global top
 	global T
@@ -183,7 +171,6 @@ def main():
 
 def score_read():
 	print "thread spawned"
-	global userinput
 	global userScore
 	global AHAScore
 
@@ -322,17 +309,14 @@ def calibrate_step4_screen():
 	top.title("Step 4")
 	calibratestep4_panel.pack()
 
-def turn_off():					# When Turn off_button_img button is chosen, come here
+def turn_off():					# When Turn Off button is chosen, come here
 	global ui_path
 	os.system(ui_path + "/off.sh")
 
 	global top
 	top.destroy()
 
-	global PowerDown
- 	PowerDown = 1				# Set Power Down flag to 1
-
-def difficulty_set_screen():		# When Choose difficulty_button_img button is triggered, come here
+def difficulty_set_screen():		# When Choose Difficulty button is triggered, come here
 	global calibrate_button
 	global off_button
 	global difficulty_button
@@ -369,9 +353,6 @@ def easy_ready_screen():					# When Easy button is triggered, come here
 	hard_button.place_forget()
 	backtowelcome_button.place_forget()
 
-	global mode
-	mode = 1					# Set Mode flag to 1
-
 	global top
 	global startgame_button
 	global backtodifficulty_button
@@ -392,9 +373,6 @@ def med_ready_screen():					# When Medium button is triggered, come here
 	hard_button.place_forget()
 	backtowelcome_button.place_forget()
 
-	global mode
-	mode = 2					# Set Mode flag to 2
-
 	global top
 	global startgame_button
 	global backtodifficulty_button
@@ -413,9 +391,6 @@ def hard_ready_screen():					# When Hard button is triggered, come here
 	med_button.place_forget()
 	hard_button.place_forget()
 	backtowelcome_button.place_forget()
-
-	global mode
-	mode = 3					# Set Mode flag to 3
 
 	global top
 	global startgame_button
