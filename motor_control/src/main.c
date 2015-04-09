@@ -91,7 +91,7 @@ typedef enum {
  * @brief   Control characters for serial communication
  */
 typedef enum {
-    SERIAL_START            = 'G',  /**< Start character for all transactions */
+    SERIAL_START            = 'M',  /**< Start character for all transactions */
     SERIAL_ON               = 'O',  /**< Board is powered and ready to recieve commands */
     SERIAL_PARAM            = 'R',  /**< Character to set parameters */
     SERIAL_PARAM_X          = 'X',  /**< Character to set x parameters */
@@ -103,6 +103,7 @@ typedef enum {
     SERIAL_CALIBRATE_DONE   = 'D',  /**< Character to finish calibrating */
     SERIAL_ACK              = 'A',  /**< Ack character */
     SERIAL_ERROR            = 'E',  /**< Error character */
+    SERIAL_CALIBRATE_LIMITS = 'I',  /**< Character to indicate calibration values */
 } serial_char_t;
 
 /**
@@ -360,8 +361,8 @@ int main(void)
         // Get a character
         c = sdGet(&SD1);
 
-        // TODO: Take out echo?
-        ECHO(c);
+        // Echo
+        ECHO_CHAR(c);
 
         // Call the appropriate handler
         serial_mode_handler[serial_mode](c);
@@ -505,7 +506,7 @@ static void serial_mode_param_x_s_handler(uint8_t c)
         // If we had a trailing comma, get the next character
         if (c == ',') {
             c = sdGet(&SD1);
-            ECHO(c);
+            ECHO_CHAR(c);
         }
 
         if (c != '\r' && c != '\n') {
@@ -597,7 +598,7 @@ static void serial_mode_param_y_s_handler(uint8_t c)
         // If we had a trailing comma, get the next character
         if (c == ',') {
             c = sdGet(&SD1);
-            ECHO(c);
+            ECHO_CHAR(c);
         }
 
         if (c != '\r' && c != '\n') {
@@ -658,7 +659,7 @@ static void serial_mode_location_y_handler(uint8_t c)
         // If we had a trailing comma, get the next character
         if (c == ',') {
             c = sdGet(&SD1);
-            ECHO(c);
+            ECHO_CHAR(c);
         }
 
         if (c != '\r' && c != '\n') {
@@ -759,7 +760,7 @@ static void serial_mode_calibrate_done_handler(uint8_t c)
 
         // Otherwise report back calibration values
         else {
-            PRINTF("%c%c:%f,%f,%f,%f\r\n", SERIAL_START, SERIAL_CALIBRATE, lower_x, upper_x, lower_y, upper_y);
+            PRINTF("%c%c:%f,%f,%f,%f\r\n", SERIAL_START, SERIAL_CALIBRATE_LIMITS, lower_x, upper_x, lower_y, upper_y);
         }
 
         // Reset state machine
