@@ -173,7 +173,12 @@ def main():
 	tcp_thread = threading.Thread(target = tcp_thread_f)
 	tcp_thread.start()
 
-	top.mainloop()
+	try:
+		top.mainloop()
+	except KeyboardInterrupt:
+		tcp_should_exit = True
+		tcp_thread.join()
+		sys.exit()
 
 def tcp_thread_f():
 	global tcp_should_exit
@@ -181,20 +186,29 @@ def tcp_thread_f():
 	tcp_port = 5005
 	buffer_size = 1024
 
+	socket.setdefaulttimeout(1)
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	sock.bind(('', tcp_port))
 	sock.listen(1)
 
-	conn, addr = sock.accept()
+	while True:
+		try:
+			conn, addr = sock.accept()
+		except socket.timeout:
+			print "timeout accepting"
+			if tcp_should_exit:
+				return
+			continue
+		break
 	
 	while True:
 		ready = select.select([conn], [], [], 1)[0]
-		if (ready):
+		if ready:
 			line = conn.recv(buffer_size)
 			print line,
 		if tcp_should_exit:
-			break;
+			break
 
 def vector_send(string):
 	global socket
