@@ -184,6 +184,7 @@ def tcp_thread_f():
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	sock.bind(('', tcp_port))
+	sock.listen(1)
 
 	conn, addr = sock.accept()
 	
