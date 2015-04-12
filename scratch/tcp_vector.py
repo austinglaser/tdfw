@@ -5,6 +5,7 @@ import threading
 import sys
 import errno
 import time
+import select
 
 def main():
 	global s
@@ -14,13 +15,12 @@ def main():
 	tcp_port = 5005
 	buffer_size = 1024
 	
-	message = "poop on ur face"
-	
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 	listen_should_exit = False
 	listen_thread = threading.Thread(target=listen)
+	listen_thread.setDaemon(True)
 
 	connected = False
 	while not connected:
@@ -31,8 +31,8 @@ def main():
 			if serr.errno == errno.ECONNREFUSED:
 				print "connection refused"
 				time.sleep(1)
-			else:
-				raise serr
+ 			else:
+ 				print serr
 		
 
 	listen_thread.start()
@@ -55,11 +55,13 @@ def listen():
 	buffer_size = 1024
 
 	while True:
-		line = s.recv(buffer_size)
-		if listen_should_exit or not line:
+		ready = select.select([s], [], [], 1)[0]
+		if (ready):
+			line = s.recv(buffer_size)
+			print line,
+		if listen_should_exit:
 			break;
 
-		print line,
 
 if __name__ == "__main__":
 	main()

@@ -42,11 +42,12 @@ def listen():
 	print "listening"
 
 	while True:
-		line = conn.recv(buffer_size)
-		if listen_should_exit or not line:
-			break
-
-		print line,
+		ready = select.select([s], [], [], 1)[0]
+		if (ready):
+			line = s.recv(buffer_size)
+			print line,
+		if listen_should_exit:
+			break;
 
 if __name__ == "__main__":
 	main()
