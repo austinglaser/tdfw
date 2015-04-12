@@ -167,21 +167,22 @@ def main():
 	start_button.place(x = 10, y = 0)					# Whole program begins here where the Start button appears alone
 	start_button.config(image = start_button_img)
 
-	global tcp_thread
-	global tcp_should_exit
-	tcp_should_exit = False
-	tcp_thread = threading.Thread(target = tcp_thread_f)
-	tcp_thread.start()
+	global vector_listen
+	global vector_listen_should_exit
+	vector_listen_should_exit = False
+	vector_listen = threading.Thread(target = vector_listen_f)
+	vector_listen.start()
 
 	try:
 		top.mainloop()
 	except KeyboardInterrupt:
-		tcp_should_exit = True
-		tcp_thread.join()
+		vector_listen_should_exit = True
+		vector_listen.join()
 		sys.exit()
 
-def tcp_thread_f():
-	global tcp_should_exit
+def vector_listen_f():
+	global vector_listen_should_exit
+	global conn
 
 	tcp_port = 5005
 	buffer_size = 1024
@@ -191,13 +192,14 @@ def tcp_thread_f():
 	sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	sock.bind(('', tcp_port))
 	sock.listen(1)
+	conn = None
 
 	while True:
 		try:
 			conn, addr = sock.accept()
 		except socket.timeout:
 			print "timeout accepting"
-			if tcp_should_exit:
+			if vector_listen_should_exit:
 				return
 			continue
 		break
@@ -207,12 +209,14 @@ def tcp_thread_f():
 		if ready:
 			line = conn.recv(buffer_size)
 			print line,
-		if tcp_should_exit:
+		if vector_listen_should_exit:
 			break
 
 def vector_send(string):
-	global socket
-	socket.send(string + '\n')
+	global conn
+
+	if not conn is None:
+		socket.send(string + '\n')
 
 def score_read():
 	print "thread spawned"
@@ -281,6 +285,8 @@ def calibrate_start_screen():				# When Calibrate button is triggered, come here
 	off_button.place_forget()
 	difficulty_button.place_forget()
 
+	vector_send("UCS")
+
 	global next1_button
 	global top
 	global T
@@ -300,6 +306,8 @@ def calibrate_step1_screen():
 	T.delete(1.0, END)
 	T.pack_forget()
 
+	vector_send("UC1")
+
 	global next2_button
 	next2_button.place(x = 173, y = 200)
 	next2_button.config(image = nextcalibrate_button_img)
@@ -314,6 +322,8 @@ def calibrate_step2_screen():
 	global calibratestep1_panel
 	next2_button.place_forget()
 	calibratestep1_panel.pack_forget()
+
+	vector_send("UC2")
 
 	global next3_button
 	next3_button.place(x = 173, y = 200)
@@ -330,6 +340,8 @@ def calibrate_step3_screen():
 	next3_button.place_forget()
 	calibratestep2_panel.pack_forget()
 
+	vector_send("UC3")
+
 	global next4_button
 	next4_button.place(x = 173, y = 200)
 	next4_button.config(image = nextcalibrate_button_img)
@@ -345,6 +357,8 @@ def calibrate_step4_screen():
 	next4_button.place_forget()
 	calibratestep3_panel.pack_forget()
 
+	vector_send("UC4")
+
 	global finish_button
 	finish_button.place(x = 173, y = 200)
 	finish_button.config(image = done_button_img)
@@ -355,10 +369,10 @@ def calibrate_step4_screen():
 	calibratestep4_panel.pack()
 
 def turn_off():					# When Turn Off button is chosen, come here
-	global tcp_should_exit
-	global tcp_thread
-	tcp_should_exit = True
-	tcp_thread.join()
+	global vector_listen_should_exit
+	global vector_listen
+	vector_listen_should_exit = True
+	vector_listen.join()
 
 	global ui_path
 	os.system(ui_path + "/off.sh")
@@ -403,6 +417,8 @@ def easy_ready_screen():					# When Easy button is triggered, come here
 	hard_button.place_forget()
 	backtowelcome_button.place_forget()
 
+	vector_send("UD1")
+
 	global top
 	global startgame_button
 	global backtodifficulty_button
@@ -423,6 +439,8 @@ def med_ready_screen():					# When Medium button is triggered, come here
 	hard_button.place_forget()
 	backtowelcome_button.place_forget()
 
+	vector_send("UD2")
+
 	global top
 	global startgame_button
 	global backtodifficulty_button
@@ -442,6 +460,8 @@ def hard_ready_screen():					# When Hard button is triggered, come here
 	hard_button.place_forget()
 	backtowelcome_button.place_forget()
 
+	vector_send("UD3")
+
 	global top
 	global startgame_button
 	global backtodifficulty_button
@@ -458,6 +478,8 @@ def score_screen():					# When Start Game button is triggered, come here
 	backtodifficulty_button.place_forget()			# Wipe all buttons from previous window
 	startgame_button.place_forget()
 	top.title("Scores")
+
+	vector_send("US")
 
 	global score_panel
 	score_panel.pack()
@@ -544,6 +566,8 @@ def winner_screen():
 		global aha_number_panel
 		user_number_panel.place(x = 1000, y = 1000) #user score
 		aha_number_panel.place(x = 1000, y = 1000)	#aha score
+
+		vector_send("UP")
 		
 		global score_panel
 		score_panel.pack_forget()
@@ -560,6 +584,8 @@ def loser_screen():
 		global aha_number_panel
 		user_number_panel.place(x = 1000, y = 1000) #user score
 		aha_number_panel.place(x = 1000, y = 1000)	#aha score
+
+		vector_send("UP")
 		
 		global score_panel
 		score_panel.pack_forget()
