@@ -10,6 +10,7 @@ import threading
 import time
 from sys import stdin
 import os
+import socket
 import select
 
 def main():
@@ -165,9 +166,38 @@ def main():
 	
 	start_button.place(x = 10, y = 0)					# Whole program begins here where the Start button appears alone
 	start_button.config(image = start_button_img)
-	
+
+	global tcp_thread
+	global tcp_should_exit
+	tcp_should_exit = False
+	tcp_thread = threading.Thread(target = tcp_thread_f)
+	tcp_thread.start()
+
 	top.mainloop()
 
+def tcp_thread_f():
+	global tcp_should_exit
+
+	tcp_port = 5005
+	buffer_size = 1024
+
+	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	sock.bind(('', tcp_port))
+
+	conn, addr = sock.accept()
+	
+	while True:
+		ready = select.select([conn], [], [], 1)[0]
+		if (ready):
+			line = conn.recv(buffer_size)
+			print line,
+		if tcp_should_exit:
+			break;
+
+def vector_send(string):
+	global socket
+	socket.send(string + '\n')
 
 def score_read():
 	print "thread spawned"
@@ -310,6 +340,11 @@ def calibrate_step4_screen():
 	calibratestep4_panel.pack()
 
 def turn_off():					# When Turn Off button is chosen, come here
+	global tcp_should_exit
+	global tcp_thread
+	tcp_should_exit = True
+	tcp_thread.join()
+
 	global ui_path
 	os.system(ui_path + "/off.sh")
 
