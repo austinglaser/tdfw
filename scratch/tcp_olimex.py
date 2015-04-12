@@ -43,9 +43,9 @@ def listen():
 	print "listening"
 
 	while True:
-		ready = select.select([s], [], [], 1)[0]
+		ready = select.select([conn], [], [], 1)[0]
 		if (ready):
-			line = s.recv(buffer_size)
+			line = conn.recv(buffer_size)
 			print line,
 		if listen_should_exit:
 			break;
