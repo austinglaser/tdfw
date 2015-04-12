@@ -3,6 +3,7 @@
 import socket
 import threading
 import sys
+import select
 
 def main():
 	global conn
