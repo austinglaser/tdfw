@@ -156,7 +156,7 @@ def main():
 	next2_button     		= Tkinter.Button(top, text = "Next",              command = calibrate_step2_screen)
 	next3_button     		= Tkinter.Button(top, text = "Next",              command = calibrate_step3_screen)
 	next4_button     		= Tkinter.Button(top, text = "Next",              command = calibrate_step4_screen)
-	finish_button    		= Tkinter.Button(top, text = "Finish",            command = welcome_screen)
+	finish_button    		= Tkinter.Button(top, text = "Finish",            command = calibration_done)
 	
 	top.title("AHA! Welcome")
 	top.geometry("480x272")
@@ -216,7 +216,7 @@ def vector_send(string):
 	global conn
 
 	if not conn is None:
-		socket.send(string + '\n')
+		conn.send(string + '\n')
 
 def score_read():
 	print "thread spawned"
@@ -367,6 +367,11 @@ def calibrate_step4_screen():
 	global calibratestep4_panel
 	top.title("Step 4")
 	calibratestep4_panel.pack()
+
+def calibration_done():
+	vector_send("UCD")
+
+	welcome_screen()
 
 def turn_off():					# When Turn Off button is chosen, come here
 	global vector_listen_should_exit
