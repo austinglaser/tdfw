@@ -5,6 +5,11 @@ import math
 import os
 import time
 import serial
+import socket
+import sys
+import threading
+import errno
+import select
 from datetime import datetime
 
 def doCountdown(time_sleep):
@@ -177,7 +182,8 @@ def checkCalibration(x_arr, y_arr, low, high):
 def doMDScalibration(debug):
 	retVal = (0, 0)
 	cap = cv2.VideoCapture(1) 
-
+	cap.set(10,-0.5) #set brightness
+	cap.set(12,0.8) #set brightness
 	ret, frame = cap.read()
 
 	#unsharp mask
@@ -192,7 +198,7 @@ def doMDScalibration(debug):
     # multiply every pixel value by alpha
 	cv2.multiply(frame, array_alpha, frame)  
 
-	boundaries = [([70, 150, 150], [110, 210, 210])]	#very rough color estimation, no absolute color detection
+	boundaries = [([0, 150, 180], [10, 205, 230])]	#very rough color estimation, no absolute color detection
 	# loop over the boundaries which actually doesn't matter right now, it only runs once
 	for (lower, upper) in boundaries:
 		# create NumPy arrays from the boundaries
@@ -202,9 +208,9 @@ def doMDScalibration(debug):
 		# find the colors within the specified boundaries and apply
 		# the mask
 		mask = cv2.inRange(frame, lower, upper)
-		kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(8,10))
+		kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(6,8))
 		mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-		kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(6,6))
+		kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(5,5))
 		mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
 		output = cv2.bitwise_and(frame, frame, mask = mask)
 
@@ -213,7 +219,7 @@ def doMDScalibration(debug):
 		dM10 = Omoments['m10']
 		dArea = Omoments['m00']
 
-		if dArea > 10000: #the dot is on the screen
+		if dArea > 8000: #the dot is on the screen
  				posX = int(dM10/dArea)
  				posY = int(dM01/dArea)
  				retVal = (posX, posY)
@@ -450,9 +456,11 @@ def sendCommand(SerialStream, command): #accepts string
 		sendStr = 'MC\n'
 	if command == 'calibration done':
 		sendStr = 'MD\n'
+	print sendStr
 	SerialStream.write(sendStr)
 
 	returnString = SerialStream.readline()
+	print returnString
 	if 'ME' in returnString:
 		#there is an error
 		errorList = returnString.split(':', 1)
@@ -469,6 +477,7 @@ def sendCommand(SerialStream, command): #accepts string
 	return (IsError, ErrorString)
 
 def connect():
+	global s
 	tcp_ip = '192.168.2.1'
 	tcp_port = 5005
 
@@ -500,7 +509,7 @@ def listen():
 		if (ready):
 			try:
 				dataFromUI = s.recv(buffer_size)
-				#print line,
+				print dataFromUI,
 				if dataFromUI == "UF\n":
 					s.close()
 					s = connect()
@@ -532,6 +541,7 @@ calFactor = 0;
 strikeFlag = False
 y_meow = 25.0
 state = "startup"
+difficulty = 'easy'
 
 #x and y calibration array
 y = [0] * 4;
@@ -543,186 +553,275 @@ dataFromUI = ''
 if (doCalibrate == False):
 	goal, ymax, ymin, low, high = 100, 70.0, 350.0, [0, 210, 0], [200, 255, 20] #[0, 210, 0] [200, 255, 20]
 
-#states: startup, idle, calibrate, play, shutdown. ctl-c also enters the shutdown state. 
+while True:
+	#states: startup, idle, calibrate, play, shutdown. ctl-c also enters the shutdown state. 
+	if state == "startup":
+		#invoke startup code
+		print 'startup'
 
-if state == "startup":
-	#invoke startup code
+		#open TCP
+		global s
+		global listen_should_exit
 
-	#open TCP
-	global s
-	global listen_should_exit
+		listen_should_exit = False
+		listen_thread = threading.Thread(target=listen)
+		listen_thread.setDaemon(True)
 
-	listen_should_exit = False
-	listen_thread = threading.Thread(target=listen)
-	listen_thread.setDaemon(True)
+		s = connect()
 
-	s = connect()
+		listen_thread.start()
 
-	listen_thread.start()
+		#open serial to MDS 
+		ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
 
-	#open serial to MDS 
-	ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
+		state = "idle"
 
-elif state == "calibrate":
-	#calibrate code. 
-	#TODO: add puck caibration into the system 
-	sendCommand(ser, 'calibrate')
+	elif state == "calibrate":
+		#calibrate code. 
+		print 'calibrate'
+		#TODO: add puck caibration into the system 
+		sendCommand(ser, 'calibrate')
 
-	while dataFromUI != 'UCS\n'
-		#UC1
-		if dataFromUI == 'UC1\n':
-			x[0], y[0] = doMDScalibration(True)
-		#UC2
-		if dataFromUI == 'UC2\n':
-			x[1], y[1] = doMDScalibration(True)
-		#UC3
-		if dataFromUI == 'UC3\n':
-			x[2], y[2] = doMDScalibration(True)
-		#UC4
-		if dataFromUI == 'UC4\n':
-			x[3], y[3] = doMDScalibration(True)
+		while dataFromUI != 'UC1\n':
+			time.sleep(0.1)
 
-	sendCommand(ser, 'calibration done')
+		while dataFromUI != 'UC2\n':
+			time.sleep(0.1)
 
-	#check that the calibration worked properly
-	goal, ymax, ymin = calcPlayingField(x,y)
-	print goal/2, ymax/2, ymin/2
+		x[1], y[1] = doMDScalibration(False)
 
-	#create a calfactor using the values from the MDS
-	calFactor = createCalFactor(y[0], y[1], x_calibration_min, x_calibration_max)
+		while dataFromUI != 'UC3\n':
+			time.sleep(0.1)
 
-	#TODO: add error comms info if the calibration did not work properly.
+		x[2], y[2] = doMDScalibration(False)
 
-	success = checkCalibration(x, y, low, high )
-	if success == True:
-		print 'calibration complete'
+		while dataFromUI != 'UC4\n':
+			time.sleep(0.1)
 
-elif state == "play":
-	#play code
-	#values which keep track of where the puck was last frame.
-	X_prev = 0
-	Y_prev = 0
+		x[3], y[3] = doMDScalibration(False)
 
-	#TODO: change the parameters based on what the difficulty level is.
-	print 'setting params'
-	setMDSParams(ser, 'X', '0.22', '0.000005', '10.0', '20.0')
-	setMDSParams(ser, 'Y', '0.35', '0.000020', '15.0', '20.0')
+		while dataFromUI != 'UCD\n':
+			time.sleep(0.1)
 
-	print 'starting'
-	sendCommand(ser, 'start')
-	time.sleep(1)
+		x[0], y[0] = doMDScalibration(False)
 
-	#open the video stream
-	cap = cv2.VideoCapture(1)
+		sendCommand(ser, 'calibration done')
 
-	cap.set(3,320) #set height
-	cap.set(4,240) #set width
-	cap.set(5,125) #set framerate
-	cap.set(10,-0.5) #set brightness
-	cap.set(12,0.8) #set set saturation
+		#check that the calibration worked properly
+		goal, ymax, ymin = calcPlayingField(x,y)
+		print goal/2, ymax/2, ymin/2
 
-	while(dataFromUI != 'UP\n'):
-		try:
-			ret, image = cap.read()
+		#TODO: add error comms info if the calibration did not work properly.
 
-			boundaries = [(low, high)]
+		success = checkCalibration(x, y, low, high )
+		if success == True:
+			#create a calfactor using the values from the MDS
+			calFactor = createCalFactor(y[0]/2, y[1]/2, x_calibration_min, x_calibration_max)
+			print calFactor #should be ~4
+			print 'calibration complete'
 
-			locX, locY = locatePuck(image, boundaries, goal/2, ymax/2, ymin/2)
+		else:
+			calFactor = 0
+			print 'calibraton failed'
 
-			if locX < 55:
-				#don't predict the puck location, because it's behind the MDS
-				xp,yp = (int(goal/2), int(((ymax/2)+(ymin/2))/2))
-				y_meow = 30.0
+		cap = cv2.VideoCapture(1)
+		cap.set(3,320) #set height
+		cap.set(4,240) #set width
+		cap.set(5,125) #set framerate
+		cap.set(10,-0.5) #set brightness
+		cap.set(12,0.8) #set set saturation
+		ret, image = cap.read()
 
-			else:
-				#done in main every frame
-				deltaX = locX - X_prev
-				deltaY = locY - Y_prev
+		drawArena(goal/2, ymax/2, ymin/2, image)
+		cv2.imshow("image", image)
 
-				if (deltaX < 0 and locX in range(80, 120) or ((deltaX >= 0) and locX in range(80, 100))):
-					#set the mds y to 100
-					if deltaX < 0:
-						y_meow = 125
+		cap.release()
 
-					elif ((math.sqrt(math.pow(deltaX, 2) + math.pow(deltaY, 2))) < 2):
-						#the puck isn't moving
-						y_meow = 2.5*locX
+		cv2.waitKey(0)
+		cv2.destroyAllWindows()
 
-					else: #go to the puck's location
-						y_meow = 125
-					#record time the strike happened
-					if not strikeFlag:
-						strikeTime = datetime.now()
-					#set the strike flag
-					strikeFlag = True
+		state = 'idle'
+
+	elif state == "play":
+		#play code
+		print 'play'
+		#values which keep track of where the puck was last frame.
+		X_prev = 0
+		Y_prev = 0
+
+		#TODO: change the parameters based on what the difficulty level is.
+		print 'setting params'
+		print difficulty
+
+		if difficulty == 'easy':
+			#TODO: ADD BOUNDARY CLOSURE
+			setMDSParams(ser, 'X', '0.1', '0.0000100', '17.0', '20.0')
+			setMDSParams(ser, 'Y', '0.35', '0.000020', '15.0', '20.0')
+
+		elif difficulty == 'medium':
+			#TODO: ADD BOUNDARY CLOSURE
+			setMDSParams(ser, 'X', '0.15', '0.000010', '15.0', '20.0')
+			setMDSParams(ser, 'Y', '0.35', '0.000020', '15.0', '20.0')
+
+		elif difficulty == 'hard': 
+			#TODO: ADD BOUNDARY CLOSURE
+			setMDSParams(ser, 'X', '0.22', '0.000010', '10.0', '20.0')
+			setMDSParams(ser, 'Y', '0.35', '0.000020', '15.0', '20.0')
+
+		else:
+			#default, easy
+			setMDSParams(ser, 'X', '0.15', '0.000010', '15.0', '20.0')
+			setMDSParams(ser, 'Y', '0.35', '0.000020', '15.0', '20.0')
+
+		while dataFromUI != 'US\n':
+			time.sleep(0.1)
+
+		print 'starting'
+		sendCommand(ser, 'start')
+		time.sleep(1)
+
+		#open the video stream
+		cap = cv2.VideoCapture(1)
+
+		cap.set(3,320) #set height
+		cap.set(4,240) #set width
+		cap.set(5,125) #set framerate
+		cap.set(10,-0.5) #set brightness
+		cap.set(12,0.8) #set set saturation
+
+		while(dataFromUI != 'UP\n'):
+			try:
+				ret, image = cap.read()
+
+				boundaries = [(low, high)]
+
+				locX, locY = locatePuck(image, boundaries, goal/2, ymax/2, ymin/2)
+
+				if locX < 55:
+					#don't predict the puck location, because it's behind the MDS
+					xp,yp = (int(goal/2), int(((ymax/2)+(ymin/2))/2))
+					y_meow = 30.0
 
 				else:
-					#normal y placement
-					y_meow = 30.0
-					strikeFlag = False
+					#done in main every frame
+					deltaX = locX - X_prev
+					deltaY = locY - Y_prev
 
-				if strikeFlag:
-					#has 0.X seconds passed?
-					finalTime = datetime.now()
-					c = finalTime - strikeTime
-					elapsed = (c.days * 24 * 60 * 60 + c.seconds) * 1000 + c.microseconds / 1000.0 #in ms
-					print elapsed
-					if elapsed > 700:
-						#reset the striking
+					if (deltaX < 0 and locX in range(80, 120) or ((deltaX >= 0) and locX in range(80, 100))):
+						#set the mds y to 100
+						if deltaX < 0:
+							y_meow = 125
+
+						# elif ((math.sqrt(math.pow(deltaX, 2) + math.pow(deltaY, 2))) < 2):
+						# 	#the puck isn't moving
+						# 	y_meow = 2.5*locX
+
+						# else: #go to the puck's location
+						# 	y_meow = 125
+						#record time the strike happened
+						if not strikeFlag:
+							strikeTime = datetime.now()
+						#set the strike flag
+						strikeFlag = True
+
+					else:
+						#normal y placement
 						y_meow = 30.0
 						strikeFlag = False
 
-				xp,yp = predictPuck(goal/2, ymax/2, ymin/2, deltaX, deltaY)
-				#print 'predicton: ', xp, yp
+					if strikeFlag:
+						#has 0.X seconds passed?
+						finalTime = datetime.now()
+						c = finalTime - strikeTime
+						elapsed = (c.days * 24 * 60 * 60 + c.seconds) * 1000 + c.microseconds / 1000.0 #in ms
+						print elapsed
+						if elapsed > 700:
+							#reset the striking
+							y_meow = 30.0
+							strikeFlag = False
 
-			#filter the predicted output. Do we actually want to use this?
-			x_array, x_avg_5 = doAverage(x_array, xp)
-			y_array, y_avg_5 = doAverage(y_array, yp)
-			x_send = x_avg_5
-			y_send = y_avg_5
+					xp,yp = predictPuck(goal/2, ymax/2, ymin/2, deltaX, deltaY)
+					#print 'predicton: ', xp, yp
 
-			X_prev = locX
-			Y_prev = locY
+				#filter the predicted output. Do we actually want to use this?
+				x_array, x_avg_5 = doAverage(x_array, xp)
+				y_array, y_avg_5 = doAverage(y_array, yp)
+				x_send = x_avg_5
+				y_send = y_avg_5
 
-			#the final point to send is in x,y format. 
-			#since we are always hovering at x = 50mm, we don't even need to calfactor anything.
-			#just send it 50mm unless the MDS is striking.
-			finalpt = pxToMM(y_send, calFactor, ymax/2)
+				X_prev = locX
+				Y_prev = locY
 
-			error, errorStr = setMDSLocation(ser, finalpt, y_meow)
+				#the final point to send is in x,y format. 
+				#since we are always hovering at x = 50mm, we don't even need to calfactor anything.
+				#just send it 50mm unless the MDS is striking.
+				finalpt = pxToMM(y_send, calFactor, ymax/2)
 
-			#show the images, bring these back to watch the fun in realtime!
+				error, errorStr = setMDSLocation(ser, finalpt, y_meow)
 
-			cv2.circle(image, (int(x_send), int(y_send)), 4, (255, 255, 0), -1)
-			drawArena(goal/2, ymax/2, ymin/2, image)
-			cv2.imshow("image", image)
-			cv2.waitKey(1)
+				#show the images, bring these back to watch the fun in realtime!
 
-		except KeyboardInterrupt:
-			#send stop command
-			#close serial port
-			fo.close()
-			cap.release()
-			print 'stopping mds'
-			sendCommand(ser, 'stop')
-			print 'closing serial'
-			ser.close()
-			break
+				cv2.circle(image, (int(x_send), int(y_send)), 4, (255, 255, 0), -1)
+				drawArena(goal/2, ymax/2, ymin/2, image)
+				cv2.imshow("image", image)
+				cv2.waitKey(1)
 
-	#the stop game command came in, so stop.
-	#release the capture
-	cap.release()
-	sendCommand(ser, 'stop')
+			except KeyboardInterrupt:
+				#send stop command
+				#close serial port
+				cap.release()
+				print 'stopping mds'
+				sendCommand(ser, 'stop')
+				print 'closing serial'
+				ser.close()
+				listen_should_exit = True
+				break
 
-	#set the parameters based on the difficulty selected
+		#the stop game command came in, so stop.
+		#release the capture
+		cap.release()
+		sendCommand(ser, 'stop')
 
-elif state == "shutdown":
-	#shutdown code
-	#close the serial
-	print 'closing serial'
-	ser.close()
-	#TODO: close the TCP?
+		cv2.destroyAllWindows()
 
-else:
-	#idle code, default case
-	time.sleep(0.5)
+		print 'game finished'
+
+		state = 'idle'
+
+		#set the parameters based on the difficulty selected
+
+	elif state == "shutdown":
+		#shutdown code
+		print 'shutdown'
+		#close the serial
+		print 'closing serial'
+		listen_should_exit = True
+		ser.close()
+		state = 'idle'
+
+	else:
+		print 'idle'
+		#idle code, default case
+		while True:
+			if dataFromUI == 'UCS\n':
+				state = "calibrate"
+				break
+			if dataFromUI == 'UD1\n':
+				#TODO:set the tuning parameters before starting the game
+				state = "play"
+				difficulty = 'easy'
+				break
+			if dataFromUI == 'UD2\n':
+				#TODO:set the tuning parameters before starting the game
+				state = "play"
+				difficulty = 'medium'
+				break
+			if dataFromUI == 'UD3\n':
+				#TODO:set the tuning parameters before starting the game
+				state = "play"
+				difficulty = 'hard'
+				break
+			if dataFromUI == 'UF\n':
+				state = "shutdown"
+				break
+
