@@ -87,8 +87,8 @@
 #define MDS_ERR_THRESH_X        (5.0)
 #define MDS_ERR_THRESH_Y        (5.0)
 
-#define MDS_SAFETY_ZONE_MM_X    (25.0) 
-#define MDS_SAFETY_ZONE_MM_Y    (25.0)
+#define MDS_SAFETY_ZONE_MM_X    (40.0) 
+#define MDS_SAFETY_ZONE_MM_Y    (30.0)
 
 #define MDS_SUPPLY_VOLTS        (20.0)
 
