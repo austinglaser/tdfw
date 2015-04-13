@@ -30,7 +30,7 @@
 
 /* --- PRIVATE MACROS ------------------------------------------------------- */
 
-#define BUF_LEN     (64)            /**< Size of serial buffer */
+#define BUF_LEN     (128)            /**< Size of serial buffer */
 
 /* --- PRIVATE DATA TYPES --------------------------------------------------- */
 

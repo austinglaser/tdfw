@@ -84,11 +84,11 @@
 #define MDS_SAT_DEFAULT_Y       (15.0)      /**< Default y saturation value in volts */
 
 #define MDS_VOLT_THRESH         (0.1)
-#define MDS_ERR_THRESH_X        (7.5)
-#define MDS_ERR_THRESH_Y        (10.0)
+#define MDS_ERR_THRESH_X        (5.0)
+#define MDS_ERR_THRESH_Y        (5.0)
 
-#define MDS_SAFETY_ZONE_MM_X    (100.0) 
-#define MDS_SAFETY_ZONE_MM_Y    (50.0)
+#define MDS_SAFETY_ZONE_MM_X    (40.0) 
+#define MDS_SAFETY_ZONE_MM_Y    (30.0)
 
 #define MDS_SUPPLY_VOLTS        (20.0)
 

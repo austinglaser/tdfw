@@ -468,11 +468,12 @@ def sendCommand(SerialStream, command): #accepts string
 
 	return (IsError, ErrorString)
 
-#main
+#main loop
 global image
 global X_prev
 global Y_prev
 
+#local variables
 serialEnable = False
 doCalibrate = False
 x_avg_5 = 0;
@@ -484,122 +485,87 @@ x_array =  [0] * 1;
 calFactor = 0;
 strikeFlag = False
 y_meow = 25.0
+state = "startup"
+
+#x and y calibration array
+y = [0] * 4;
+x = [0] * 4;
+
+#comms vars
+dataFromUI = ''
 
 if (doCalibrate == False):
 	goal, ymax, ymin, low, high = 100, 70.0, 350.0, [0, 210, 0], [200, 255, 20] #[0, 210, 0] [200, 255, 20]
 
+#states: startup, idle, calibrate, play, shutdown. ctl-c also enters the shutdown state. 
 
-y = [0] * 4;
-x = [0] * 4;
+if state == "startup":
+	#invoke startup code
 
-if doCalibrate:
-	print 'calibration beginning....'
-	#send start calibration info and open serial port
+	#open TCP
 
-	if serialEnable:
-		ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
-		ser.write("c")
-		time.sleep(5)
+	#open serial to MDS 
+	ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
 
-	print 'place the puck in the center of the arena.'
-	doCountdown(5)
+elif state == "calibrate":
+	#calibrate code. 
+	#TODO: add puck caibration into the system 
+	sendCommand(ser, 'calibrate')
 
-	low, high = doPuckCalibration(True)
-	print low, high
+	while dataFromUI is not 'UCS'
+		#UC1
+		if dataFromUI == 'UC1':
+			x[0], y[0] = doMDScalibration(True)
+		#UC2
+		if dataFromUI == 'UC1':
+			[1], y[1] = doMDScalibration(True)
+		#UC3
+		if dataFromUI == 'UC1':
+			x[2], y[2] = doMDScalibration(True)
+		#UC4
+		if dataFromUI == 'UC1':
+			x[3], y[3] = doMDScalibration(True)
 
-	print 'move the mallet to the lower lefthand corner of the arena and wait'
-	doCountdown(5)
-	x[0], y[0] = doMDScalibration(True)
+	sendCommand(ser, 'calibration done')
 
-	print 'move the mallet to the lower righthand corner of the arena and wait'
-	doCountdown(5)
-	x[1], y[1] = doMDScalibration(True)
-
-	print 'move the mallet to the upper righthand corner of the arena and wait'
-	doCountdown(5)
-	x[2], y[2] = doMDScalibration(True)
-
-	print 'move the mallet to the upper lefthand corner of the arena and wait'
-	doCountdown(5)
-	x[3], y[3] = doMDScalibration(True)
-
-	print 'move the mallet back to the lower lefthand corner of the arena.'
-	doCountdown(5)
-
+	#check that the calibration worked properly
 	goal, ymax, ymin = calcPlayingField(x,y)
-	print goal, ymax, ymin
-	#some fancy way of checking the deltas for a resonable difference to determine success.
-	#also, check the puck color. it shouldn't be 0.
+	print goal/2, ymax/2, ymin/2
 
-success = checkCalibration(x, y, low, high )
-if (success == True or doCalibrate == False):
-	print 'calibration complete'
+	#create a calfactor using the values from the MDS
+	calFactor = createCalFactor(y[0], y[1], x_calibration_min, x_calibration_max)
 
-	#finish calibration
-	if serialEnable:
-		s = ser.read(100) #required to flush the data (?)
-		ser.flush() #clear the buffer before requesting the results
+	#TODO: add error comms info if the calibration did not work properly.
 
-		ser.write("s")
-		s = ser.read(100)
-		print "results of encoder calibration:"
-		print s
+	success = checkCalibration(x, y, low, high )
+	if success == True:
+		print 'calibration complete'
 
-		ser.close()
-
-	#debug
-	#cap = cv2.VideoCapture(1) 
-	#ret, frame = cap.read()
-	#print 'goal', goal, 'ymax', ymax, 'ymin', ymin
-	#drawArena(goal, ymax, ymin, frame)
-	#cv2.imshow("final playing field", frame)
-	#cv2.waitKey(0)
-	#cap.release()
-	
+elif state == "play":
+	#play code
 	#values which keep track of where the puck was last frame.
 	X_prev = 0
 	Y_prev = 0
 
-	#create a logfile
-	fo = open("data.txt", "w+")
-
-	#for right now, fudge a cal factor
-	#calFactor = createCalFactor(y[0], y[1], 0.0, 574.0)
-	calFactor = createCalFactor(80/2, 342/2, 0.0, 574.0)
-	print calFactor
-
-	ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
-
-	print 'caibrating'
-	sendCommand(ser, 'calibrate')
-	time.sleep(20)
-
-	print 'done calibrating'
-	sendCommand(ser, 'calibration done')
-	time.sleep(1)
-
+	#TODO: change the parameters based on what the difficulty level is.
 	print 'setting params'
 	setMDSParams(ser, 'X', '0.22', '0.000005', '10.0', '20.0')
 	setMDSParams(ser, 'Y', '0.35', '0.000020', '15.0', '20.0')
-	time.sleep(1)
 
 	print 'starting'
 	sendCommand(ser, 'start')
 	time.sleep(1)
 
-	#low, high = doPuckCalibration(True) #this broke. :(
-	#print low, high
-
 	#open the video stream
 	cap = cv2.VideoCapture(1)
 
-	cap.set(3,320)
-	cap.set(4,240)
-	cap.set(5,125)
+	cap.set(3,320) #set height
+	cap.set(4,240) #set width
+	cap.set(5,125) #set framerate
 	cap.set(10,-0.5) #set brightness
-	cap.set(12,0.8) #set brightness
+	cap.set(12,0.8) #set set saturation
 
-	while(1):
+	while(dataFromUI is not 'UP'):
 		try:
 			ret, image = cap.read()
 
@@ -668,9 +634,6 @@ if (success == True or doCalibrate == False):
 			finalpt = pxToMM(y_send, calFactor, ymax/2)
 
 			error, errorStr = setMDSLocation(ser, finalpt, y_meow)
-			#write this to a logfile
-			#logstr = str(finalpt) + '\n'
-			#fo.write(logstr)
 
 			#show the images, bring these back to watch the fun in realtime!
 
@@ -690,17 +653,20 @@ if (success == True or doCalibrate == False):
 			ser.close()
 			break
 
-	#del video # this makes a working AVI
-	#video.release()
+	#the stop game command came in, so stop.
+	#release the capture
+	cap.release()
+	sendCommand(ser, 'stop')
 
-else: 
-	print 'calibration failed'
-	if serialEnable:
-		s = ser.read(100) #required to flush the data (?)
-		ser.flush() #clear the buffer before requesting the results
+	#set the parameters based on the difficulty selected
 
-		ser.write("s")
-		s = ser.read(100)
-		print "results of encoder calibration: "
-		print s
-		ser.close()
+elif state == "shutdown":
+	#shutdown code
+	#close the serial
+	print 'closing serial'
+	ser.close()
+	#TODO: close the TCP?
+
+else:
+	#idle code, default case
+	time.sleep(0.5)
