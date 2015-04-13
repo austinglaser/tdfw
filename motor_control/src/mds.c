@@ -736,6 +736,12 @@ static msg_t mds_update_thread_f(void * context)
                 // Ensure the motors are off
                 mds_set_output_x(0.0);
                 mds_set_output_y(0.0);
+
+                // Tell us where we are
+                DEBUG_PRINTF("%u,%u,%u;\r\n",
+                             ST2MS(chTimeNow()),
+                             mds_info.count_x,
+                             mds_info.count_y);
                 break;
 
             default:
