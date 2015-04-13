@@ -26,7 +26,6 @@ def main():
 		except KeyboardInterrupt:
 			print ""
 			listen_should_exit = True
-			listen_thread.join()
 			s.close()
 			sys.exit()
 
