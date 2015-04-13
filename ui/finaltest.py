@@ -12,6 +12,7 @@ from sys import stdin
 import os
 import socket
 import select
+import struct
 
 def main():
 	global userScore
@@ -169,9 +170,13 @@ def main():
 
 	global vector_listen
 	global vector_listen_should_exit
+	global conn
+	conn = None
 	vector_listen_should_exit = False
 	vector_listen = threading.Thread(target = vector_listen_f)
 	vector_listen.start()
+
+	vector_send("UO")
 
 	try:
 		top.mainloop()
@@ -192,7 +197,6 @@ def vector_listen_f():
 	sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	sock.bind(('', tcp_port))
 	sock.listen(1)
-	conn = None
 
 	while True:
 		try:
@@ -200,6 +204,11 @@ def vector_listen_f():
 		except socket.timeout:
 			print "timeout accepting"
 			if vector_listen_should_exit:
+				l_onoff = 1
+				l_linger = 0
+				sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER,
+								struct.pack('ii', l_onoff, l_linger))
+				sock.close()
 				return
 			continue
 		break
@@ -210,6 +219,11 @@ def vector_listen_f():
 			line = conn.recv(buffer_size)
 			print line,
 		if vector_listen_should_exit:
+			l_onoff = 1
+			l_linger = 0
+			sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER,
+							struct.pack('ii', l_onoff, l_linger))
+			sock.close()
 			break
 
 def vector_send(string):
@@ -376,6 +390,9 @@ def calibration_done():
 def turn_off():					# When Turn Off button is chosen, come here
 	global vector_listen_should_exit
 	global vector_listen
+
+	vector_send("UF")
+
 	vector_listen_should_exit = True
 	vector_listen.join()
 
