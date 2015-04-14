@@ -430,7 +430,7 @@ def setMDSLocation(SerialStream, x, y): #accepts float
 	IsError = False
 	ErrorString = ''
 	sendStr = 'ML:'+ ('%.2f' % x) + ',' + ('%.2f' % y) + '\n'
-	print sendStr
+	#print sendStr
 	SerialStream.write(sendStr)
 
 	returnString = SerialStream.readline()
@@ -456,7 +456,7 @@ def sendCommand(SerialStream, command): #accepts string
 		sendStr = 'MC\n'
 	if command == 'calibration done':
 		sendStr = 'MD\n'
-	print sendStr
+	#print sendStr
 	SerialStream.write(sendStr)
 
 	returnString = SerialStream.readline()
@@ -572,7 +572,7 @@ while True:
 		listen_thread.start()
 
 		#open serial to MDS 
-		ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
+		ser = serial.Serial('/dev/ttyUSB1', 115200, timeout=1)
 
 		state = "idle"
 
@@ -707,8 +707,9 @@ while True:
 					deltaX = locX - X_prev
 					deltaY = locY - Y_prev
 
-					if (deltaX < 0 and locX in range(80, 120) or ((deltaX >= 0) and locX in range(80, 100))):
+					if (deltaX < 0 and locX in range(55, 150)): #or ((deltaX >= 0) and locX in range(80, 100))):
 						#set the mds y to 100
+						print 'striking'
 						if deltaX < 0:
 							y_meow = 125
 
