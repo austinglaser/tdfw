@@ -28,7 +28,9 @@ def main():
 	T 	= Text(top, height=2, width=30)
 	
 	global ui_path
+	global wav_path
 	ui_path = os.path.dirname(os.path.realpath(__file__))
+	wav_path = ui_path + "/audio/wav"
 	
 	calibratestep1_img_path			= ui_path + "/CalibrateStep1.jpg"
 	calibratestep2_img_path   		= ui_path + "/CalibrateStep2.jpg"
@@ -620,6 +622,8 @@ def winner_screen():
 	start_button.place(x = 200, y = 220)
 	start_button.config(image = returntostart_button_img)
 
+	play_sound("userwin")
+
 def loser_screen():
 	global user_number_panel
 	global aha_number_panel
@@ -637,6 +641,16 @@ def loser_screen():
 	global start_button
 	start_button.place(x = 200, y = 220)
 	start_button.config(image = returntostart_button_img)
+
+	play_sound("userlose")
+
+def play_sound(soundname):
+	global wav_path
+	file_name = wav_path + "/" + soundname + ".wav"
+	print file_name
+
+	os.system(ui_path + "/play_sound.sh " + file_name)
+
 
 if __name__ == "__main__":
 	main()
