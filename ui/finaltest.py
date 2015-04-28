@@ -8,6 +8,7 @@ from PIL import ImageTk
 from PIL import Image
 import threading
 import time
+import datetime
 from sys import stdin
 import os
 import socket
@@ -236,6 +237,7 @@ def score_read():
 	print "thread spawned"
 	global userScore
 	global AHAScore
+	global turnoff
 
 	userScore = 0
 	AHAScore = 0
@@ -245,18 +247,20 @@ def score_read():
 
 	while True:
 		#print "meow"
-		userinput = stdin.readline()
-		print userinput
+		if len(select.select([sys.stdin.fileno()], [], [], 0.0)[0])>0:
+			userinput = stdin.readline()
+			print userinput
 
-		if "u" in userinput:
-			userScore = userScore + 1
-		if "a" in userinput:
-			AHAScore = AHAScore + 1
+			if "u" in userinput:
+				userScore = userScore + 1
+			if "a" in userinput:
+				AHAScore = AHAScore + 1
 
 		time.sleep(0.05)
+		print turnoff
 
-		if(userScore == 3 or AHAScore == 3):
-			print "exiting thread"
+		if(userScore == 3 or AHAScore == 3 or turnoff == True):
+			print "exiting thread do score read"
 			break
 
 def welcome_screen():					# Window that appears after initialization
@@ -519,11 +523,15 @@ def score_screen():					# When Start Game button is triggered, come here
 
 def start_scorekeeping(): #change
 
+	global start_time
 	global scorekeeping_done
 	scorekeeping_done = False
+	start_time = datetime.datetime.now()
 
 	#start the scorekeeping thread
 	global score_read_thread
+	global turnoff
+	turnoff = False
 	score_read_thread = threading.Thread(target=score_read)
 	score_read_thread.start()
 
@@ -581,6 +589,17 @@ def update_scores():
 			score_read_thread.join()
 			winner_screen()
 		scorekeeping_done = True
+
+	global start_time
+	global turnoff
+	now = datetime.datetime.now() - start_time
+	if now.total_seconds() >= 60:
+		print "timeout ui background"
+		turnoff = True
+		top.after_cancel(loopy)
+		score_read_thread.join()
+		print "exit ui background loop"
+		loser_screen()
 
 
 def winner_screen():
