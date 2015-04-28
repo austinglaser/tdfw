@@ -259,7 +259,6 @@ def score_read():
 				AHAScore = AHAScore + 1
 
 		time.sleep(0.05)
-		print turnoff
 
 		if(userScore == 3 or AHAScore == 3 or turnoff == True):
 			print "exiting thread do score read"
