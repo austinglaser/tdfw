@@ -14,12 +14,15 @@ import os
 import socket
 import select
 import struct
+import random
 
 def main():
 	global userScore
 	global AHAScore
 	userScore = 0
 	AHAScore = 0
+
+	random.seed()
 
 	global top
 	global T
@@ -255,8 +258,10 @@ def score_read():
 
 			if "u" in userinput:
 				userScore = userScore + 1
+				play_sound("usergoal")
 			if "a" in userinput:
 				AHAScore = AHAScore + 1
+				play_sound("ahagoal")
 
 		time.sleep(0.05)
 
@@ -295,6 +300,8 @@ def welcome_screen():					# Window that appears after initialization
 	difficulty_button.place(x = 120, y = 136)
 	difficulty_button.config(image = difficulty_button_img)
 	top.title("Welcome")
+
+	play_sound("begin")
 
 def calibrate_start_screen():				# When Calibrate button is triggered, come here 
 	global calibrate_button
@@ -536,6 +543,8 @@ def start_scorekeeping(): #change
 	score_read_thread = threading.Thread(target=score_read)
 	score_read_thread.start()
 
+	play_sound("gamestart")
+
 	loopy = top.after(1000,update_scores)
 
 
@@ -543,6 +552,12 @@ def update_scores():
 	global score_read_thread
 	global scorekeeping_done
 	global top
+
+	max_taunt_n = 21
+	n = random.randint(0, max_taunt_n*30)
+	
+	if (n <= max_taunt_n):
+		play_sound("taunt" + str(n))
 
 	print "aha score: ", AHAScore, "userScore", userScore
 	loopy = top.after(2000,update_scores)
