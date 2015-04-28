@@ -603,40 +603,40 @@ def update_scores():
 
 
 def winner_screen():
-		global user_number_panel
-		global aha_number_panel
-		user_number_panel.place(x = 1000, y = 1000) #user score
-		aha_number_panel.place(x = 1000, y = 1000)	#aha score
+	global user_number_panel
+	global aha_number_panel
+	user_number_panel.place(x = 1000, y = 1000) #user score
+	aha_number_panel.place(x = 1000, y = 1000)	#aha score
 
-		vector_send("UP")
-		
-		global score_panel
-		score_panel.pack_forget()
+	vector_send("UP")
+	
+	global score_panel
+	score_panel.pack_forget()
 
-		global winner_panel
-		winner_panel.pack()
+	global winner_panel
+	winner_panel.pack()
 
-		global start_button
-		start_button.place(x = 200, y = 220)
-		start_button.config(image = returntostart_button_img)
+	global start_button
+	start_button.place(x = 200, y = 220)
+	start_button.config(image = returntostart_button_img)
 
 def loser_screen():
-		global user_number_panel
-		global aha_number_panel
-		user_number_panel.place(x = 1000, y = 1000) #user score
-		aha_number_panel.place(x = 1000, y = 1000)	#aha score
+	global user_number_panel
+	global aha_number_panel
+	user_number_panel.place(x = 1000, y = 1000) #user score
+	aha_number_panel.place(x = 1000, y = 1000)	#aha score
 
-		vector_send("UP")
-		
-		global score_panel
-		score_panel.pack_forget()
+	vector_send("UP")
+	
+	global score_panel
+	score_panel.pack_forget()
 
-		global loser_panel
-		loser_panel.pack()
+	global loser_panel
+	loser_panel.pack()
 
-		global start_button
-		start_button.place(x = 200, y = 220)
-		start_button.config(image = returntostart_button_img)
+	global start_button
+	start_button.place(x = 200, y = 220)
+	start_button.config(image = returntostart_button_img)
 
 if __name__ == "__main__":
 	main()
