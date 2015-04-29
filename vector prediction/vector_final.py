@@ -520,7 +520,7 @@ def listen():
 				else:
 					raise serr
 		if listen_should_exit:
-			break;
+			break
 
 #main loop
 global image
@@ -529,23 +529,25 @@ global Y_prev
 global ddataFromUI
 
 #local variables
+hi = 0
+lo = 0
 serialEnable = False
 doCalibrate = False
-x_avg_5 = 0;
-y_avg_5 = 0;
-x_send = 0;
-y_send = 0;
-y_array =  [0] * 1;
-x_array =  [0] * 1;
-calFactor = 0;
+x_avg_5 = 0
+y_avg_5 = 0
+x_send = 0
+y_send = 0
+y_array =  [0] * 1
+x_array =  [0] * 1
+calFactor = 0
 strikeFlag = False
 y_meow = 25.0
 state = "startup"
 difficulty = 'easy'
 
 #x and y calibration array
-y = [0] * 4;
-x = [0] * 4;
+y = [0] * 4
+x = [0] * 4
 
 #comms vars
 dataFromUI = ''
@@ -572,7 +574,7 @@ while True:
 		listen_thread.start()
 
 		#open serial to MDS 
-		ser = serial.Serial('/dev/ttyUSB1', 115200, timeout=1)
+		ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
 
 		state = "idle"
 
@@ -649,28 +651,48 @@ while True:
 		X_prev = 0
 		Y_prev = 0
 
-		#TODO: change the parameters based on what the difficulty level is.
+		#change the parameters based on what the difficulty level is.
 		print 'setting params'
 		print difficulty
 
 		if difficulty == 'easy':
-			#TODO: ADD BOUNDARY CLOSURE
+			#ADD BOUNDARY CLOSURE
+			hi = ymax/2
+			lo = ymin/2
+			print 'high:', hi, "low:", lo
+			#TODO: DRAW LOCATON OF BOUNDARY EDGES
 			setMDSParams(ser, 'X', '0.1', '0.0000100', '17.0', '20.0')
 			setMDSParams(ser, 'Y', '0.35', '0.000020', '15.0', '20.0')
 
 		elif difficulty == 'medium':
-			#TODO: ADD BOUNDARY CLOSURE
-			setMDSParams(ser, 'X', '0.15', '0.000010', '15.0', '20.0')
+			#ADD BOUNDARY CLOSURE
+			hi = ymax/2
+			lo = ymin/2
+			mp = (hi + lo)/2
+			hi = (mp + hi)/2
+			lo = (mp + lo)/2
+			print 'high:', hi, "low:", lo
+			#TODO: DRAW LOCATON OF BOUNDARY EDGES
+			setMDSParams(ser, 'X', '0.25', '0.000010', '15.0', '20.0')
 			setMDSParams(ser, 'Y', '0.35', '0.000020', '15.0', '20.0')
 
 		elif difficulty == 'hard': 
-			#TODO: ADD BOUNDARY CLOSURE
-			setMDSParams(ser, 'X', '0.22', '0.000010', '10.0', '20.0')
+			hiiiiigh = ymax/2
+			loooooow = ymin/2
+
+			lo = int(((hiiiiigh - loooooow)/3) + loooooow)
+			hi = int(-((hiiiiigh - loooooow)/3) + hiiiiigh)
+
+			print 'high:', hi, "low:", lo
+			setMDSParams(ser, 'X', '0.75', '0.00010', '15.0', '20.0')
 			setMDSParams(ser, 'Y', '0.35', '0.000020', '15.0', '20.0')
 
 		else:
 			#default, easy
-			setMDSParams(ser, 'X', '0.15', '0.000010', '15.0', '20.0')
+			hi = ymax/2
+			lo = ymin/2
+			print 'high:', hi, "low:", lo
+			setMDSParams(ser, 'X', '0.1', '0.000010', '15.0', '20.0')
 			setMDSParams(ser, 'Y', '0.35', '0.000020', '15.0', '20.0')
 
 		while dataFromUI != 'US\n':
@@ -707,19 +729,15 @@ while True:
 					deltaX = locX - X_prev
 					deltaY = locY - Y_prev
 
-					if (deltaX < 0 and locX in range(55, 150)): #or ((deltaX >= 0) and locX in range(80, 100))):
+					if (deltaX < 0 and locX in range(55, 150)):
 						#set the mds y to 100
 						print 'striking'
 						if deltaX < 0:
-							y_meow = 125
+							if difficulty == 'hard':
+								y_meow = 125.0
+							else:
+								y_meow = 30.0 
 
-						# elif ((math.sqrt(math.pow(deltaX, 2) + math.pow(deltaY, 2))) < 2):
-						# 	#the puck isn't moving
-						# 	y_meow = 2.5*locX
-
-						# else: #go to the puck's location
-						# 	y_meow = 125
-						#record time the strike happened
 						if not strikeFlag:
 							strikeTime = datetime.now()
 						#set the strike flag
@@ -752,6 +770,14 @@ while True:
 
 				X_prev = locX
 				Y_prev = locY
+
+				#make sure the point lies inside the boundaries.
+				#if not, make it!
+				if y_send < hi:
+					y_send = hi
+
+				if y_send > lo:
+					y_send = lo
 
 				#the final point to send is in x,y format. 
 				#since we are always hovering at x = 50mm, we don't even need to calfactor anything.
@@ -808,21 +834,20 @@ while True:
 				state = "calibrate"
 				break
 			if dataFromUI == 'UD1\n':
-				#TODO:set the tuning parameters before starting the game
+				#set the tuning parameters before starting the game
 				state = "play"
 				difficulty = 'easy'
 				break
 			if dataFromUI == 'UD2\n':
-				#TODO:set the tuning parameters before starting the game
+				#set the tuning parameters before starting the game
 				state = "play"
 				difficulty = 'medium'
 				break
 			if dataFromUI == 'UD3\n':
-				#TODO:set the tuning parameters before starting the game
+				#set the tuning parameters before starting the game
 				state = "play"
 				difficulty = 'hard'
 				break
 			if dataFromUI == 'UF\n':
 				state = "shutdown"
 				break
-
